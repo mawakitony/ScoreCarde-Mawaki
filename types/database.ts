@@ -617,6 +617,12 @@ export type Database = {
         invited_by: string | null
         accepted_at: string | null
         created_at: string
+        invitation_type: "link" | "first_access_code"
+        first_access_code_hash: string | null
+        first_access_expires_at: string | null
+        first_access_attempts: number
+        first_access_used_at: string | null
+        cancelled_at: string | null
       }>
       custom_domains: Table<{
         id: string

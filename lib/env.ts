@@ -42,8 +42,10 @@ export function getAppUrl() {
 }
 
 export function safeNextPath(value: string | null | undefined) {
-  if (!value || !value.startsWith("/dashboard") || value.startsWith("//")) {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\") || value.includes("://")) {
     return "/dashboard"
   }
-  return value
+  if (/^\/invite\/[A-Za-z0-9_-]{20,}$/.test(value)) return value
+  if (value.startsWith("/dashboard")) return value
+  return "/dashboard"
 }

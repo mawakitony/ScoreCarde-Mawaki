@@ -17,6 +17,7 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string; error?: string }>
 }) {
   const params = await searchParams
+  const next = safeNextPath(params.next)
   const message = params.error ? errors[params.error] : null
 
   return (
@@ -43,11 +44,11 @@ export default async function LoginPage({
           </p>
           {message ? <p className="mt-4 rounded-xl bg-secondary px-4 py-3 text-sm">{message}</p> : null}
           <div className="mt-8">
-            <LoginForm next={safeNextPath(params.next)} configured={isSupabaseConfigured()} />
+            <LoginForm next={next} configured={isSupabaseConfigured()} />
           </div>
           <p className="mt-6 text-sm text-muted-foreground">
             Pas encore de compte ?{" "}
-            <Link href="/signup" className="text-foreground underline">
+            <Link href={next.startsWith("/invite/") ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-foreground underline">
               Créer un accès
             </Link>
           </p>

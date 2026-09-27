@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { IntegrationsPanel } from "@/components/integrations/integrations-panel"
+import { can } from "@/lib/auth/permissions"
 import { canEdit, requireUser } from "@/lib/auth/session"
 import { ensureMembership } from "@/lib/data/membership"
 import { createClient } from "@/lib/supabase/server"
@@ -17,6 +18,7 @@ export default async function IntegrationsPage() {
   await requireUser()
   const membership = await ensureMembership()
   if (!membership) return null
+  if (!can({ role: membership.role }, "integration.manage")) return <p>Permission refusée.</p>
   const supabase = await createClient()
   const [integrations, deliveries, rules, keys] = await Promise.all([
     supabase.from("integrations").select("id, provider, name, status, config").eq("organization_id", membership.organization.id).order("created_at", { ascending: false }),

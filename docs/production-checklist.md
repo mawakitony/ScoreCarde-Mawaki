@@ -17,3 +17,18 @@ Contrôle du 22 septembre 2026, sur le seul projet Supabase configuré (`zkyjasl
 - NOT TESTED — Sauvegardes Supabase / PITR.
 - NOT TESTED — `GET /api/health`.
 - NOT TESTED — Smoke navigateur.
+
+Contrôle du 27 septembre 2026. Parcours Accès rapide exécuté dans le navigateur : email + code, mot de passe choisi par l’utilisateur, dashboard.
+
+- PASS — Code de première connexion, stocké uniquement en hash.
+- PASS — Mot de passe choisi par l’utilisateur, via Supabase Auth.
+- PASS — Viewer : rôle et permissions réels.
+- PASS — Editor : rôle et permissions réels.
+- PASS — Quota de membres.
+- PASS — Expiration du code.
+- PASS — Blocage après 5 tentatives.
+- PASS — Régénération : l’ancien code est invalidé.
+- PASS — Annulation : invitation refusée, aucun membership.
+- PASS — Cross-tenant refusé.
+- PASS — Logs sans secret.
+- NOT TESTED — EMAIL DELIVERY : aucun email `first_access` reçu. Le job est créé en file. Ne pas marquer PASS tant qu’un vrai message n’est pas arrivé.

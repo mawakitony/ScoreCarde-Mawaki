@@ -31,7 +31,7 @@ export default async function ParticipantReportPage({ params }: { params: Promis
       </div>
       <ReportView
         report={presented}
-        downloadHref={report.status === "ready" ? `/api/reports/${report.id}/download?slug=${encodeURIComponent(slug)}` : undefined}
+        downloadHref={report.status === "ready" ? `/s/${slug}/results/${sessionId}/report/file` : undefined}
         preparing={report.status === "pending" || report.status === "generating"}
         failed={report.status === "failed"}
       />

@@ -19,7 +19,7 @@ export const metadata = { title: "Dashboard" }
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; from?: string; to?: string }>
+  searchParams: Promise<{ range?: string; from?: string; to?: string; welcome?: string }>
 }) {
   const params = await searchParams
   const range = resolveRange(params)
@@ -32,6 +32,9 @@ export default async function DashboardPage({
         <div>
           <p className="text-sm text-muted-foreground">Vue d&apos;ensemble</p>
           <h1 className="font-display text-4xl tracking-tight">Dashboard</h1>
+          {params.welcome === "1" && membership ? (
+            <p className="mt-3 text-sm">Bienvenue dans {membership.organization.name}. Votre accès a été créé avec succès.</p>
+          ) : null}
         </div>
         <Suspense fallback={null}>
           <PeriodFilter range={range.key} from={range.fromInput} to={range.toInput} />

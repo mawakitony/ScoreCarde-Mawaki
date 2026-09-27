@@ -1,14 +1,42 @@
-export type EmailTemplate = "organization_invitation" | "trial_ending" | "payment_failed" | "report_ready" | "support_notice"
+import { expirySentence } from "@/lib/auth/first-access"
+import { inviteRoleLabel } from "@/lib/auth/invitation-flow"
+
+export type EmailTemplate = "organization_invitation" | "first_access" | "trial_ending" | "payment_failed" | "report_ready" | "support_notice"
 
 export function renderEmail(input: { template: EmailTemplate; locale: string; payload: Record<string, string> }) {
   const english = input.locale === "en"
   const name = input.payload.organizationName || "WOLOYEM Score"
   if (input.template === "organization_invitation") {
+    const inviter = input.payload.inviterName?.trim()
+    const role = inviteRoleLabel(input.payload.role)
+    const intro = inviter
+      ? english
+        ? `${inviter} invited you to join ${name} on WOLOYEM Score.`
+        : `${inviter} vous invite à rejoindre ${name} sur WOLOYEM Score.`
+      : english
+        ? `You have been invited to join ${name} on WOLOYEM Score.`
+        : `Vous êtes invité à rejoindre ${name} sur WOLOYEM Score.`
+    const roleLine = role ? (english ? `\n\nProposed role: ${role}` : `\n\nRôle proposé : ${role}`) : ""
     return {
       subject: english ? `Invitation to ${name}` : `Invitation à rejoindre ${name}`,
       text: english
-        ? `You have been invited to join ${name} on WOLOYEM Score.\n\nAccept invitation: ${input.payload.url}`
-        : `Vous êtes invité à rejoindre ${name} sur WOLOYEM Score.\n\nAccepter l'invitation : ${input.payload.url}`,
+        ? `${intro}${roleLine}\n\nAccept invitation: ${input.payload.url}`
+        : `${intro}${roleLine}\n\nAccepter l'invitation : ${input.payload.url}`,
+    }
+  }
+  if (input.template === "first_access") {
+    const role = inviteRoleLabel(input.payload.role) ?? "Viewer"
+    const hours = Number(input.payload.expiresInHours)
+    const safeHours = Number.isFinite(hours) && hours > 0 ? hours : 24
+    const delay = english
+      ? `This code expires in ${safeHours} hour${safeHours === 1 ? "" : "s"} and can be used only once.`
+      : expirySentence(safeHours)
+    const link = input.payload.url
+    return {
+      subject: "Votre accès à WOLOYEM Score",
+      text: english
+        ? `Hello,\n\nYou have been added to ${name} on WOLOYEM Score.\nYour role: ${role}\nYour first-access code:\n${input.payload.accessCode}\n\nCreate my access: ${link}\n\n${delay}\n\nOpen WOLOYEM Score: ${link}`
+        : `Bonjour,\n\nVous avez été ajouté à ${name} sur WOLOYEM Score.\nVotre rôle : ${role}\nVotre code de première connexion :\n${input.payload.accessCode}\n\nCréer mon accès : ${link}\n\n${delay}\n\nAccéder à WOLOYEM Score : ${link}`,
     }
   }
   if (input.template === "trial_ending") {

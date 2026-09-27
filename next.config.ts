@@ -11,6 +11,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["exceljs"],
+  logging: {
+    incomingRequests: {
+      ignore: [/\/invite\//, /%2Finvite%2F/i],
+    },
+  },
   async headers() {
     const headers = securityHeaders.map((header) =>
       header.key === "Content-Security-Policy" && process.env.NODE_ENV !== "production"

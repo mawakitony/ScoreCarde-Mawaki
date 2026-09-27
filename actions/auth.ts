@@ -3,11 +3,13 @@
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { getAppUrl, safeNextPath } from "@/lib/env"
+import { invitationKeepsSession } from "@/lib/auth/invite-session"
 import { createClient } from "@/lib/supabase/server"
 import { inviteSchema, loginSchema, magicLinkSchema, profileSchema, signupSchema } from "@/lib/validators/auth"
 
 function authMessage(message: string) {
   const normalized = message.toLowerCase()
+  if (normalized.includes("rate limit")) return "Trop de tentatives pour le moment. Réessayez dans quelques minutes."
   if (normalized.includes("invalid login")) return "Email ou mot de passe incorrect."
   if (normalized.includes("email not confirmed")) return "Confirmez votre email avant de vous connecter."
   if (normalized.includes("already registered") || normalized.includes("already been registered")) {
@@ -38,13 +40,15 @@ export async function signIn(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(parsed.data)
   if (error) return { error: authMessage(error.message) }
 
+  const next = safeNextPath(String(formData.get("next") ?? ""))
   const { error: bootError } = await supabase.rpc("bootstrap_membership")
   if (bootError) {
+    if (await invitationKeepsSession(next)) redirect(next)
     await supabase.auth.signOut()
     return { error: authMessage(bootError.message) }
   }
 
-  redirect(safeNextPath(String(formData.get("next") ?? "")))
+  redirect(next)
 }
 
 export async function signUp(formData: FormData) {
@@ -56,13 +60,14 @@ export async function signUp(formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." }
 
   const origin = await redirectOrigin()
+  const next = safeNextPath(String(formData.get("next") ?? ""))
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${origin}/auth/callback?next=/dashboard`,
+      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   })
 
@@ -73,11 +78,12 @@ export async function signUp(formData: FormData) {
 
   const { error: bootError } = await supabase.rpc("bootstrap_membership")
   if (bootError) {
+    if (await invitationKeepsSession(next)) redirect(next)
     await supabase.auth.signOut()
     return { error: authMessage(bootError.message) }
   }
 
-  redirect("/dashboard")
+  redirect(next)
 }
 
 export async function sendMagicLink(formData: FormData) {
@@ -85,10 +91,11 @@ export async function sendMagicLink(formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Email invalide." }
 
   const origin = await redirectOrigin()
+  const next = safeNextPath(String(formData.get("next") ?? ""))
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
-    options: { emailRedirectTo: `${origin}/auth/callback?next=/dashboard` },
+    options: { emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` },
   })
 
   if (error) return { error: "Le lien magique n'a pas pu être envoyé." }
@@ -99,6 +106,13 @@ export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect("/login")
+}
+
+export async function signOutToLogin(formData: FormData) {
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+  const next = safeNextPath(String(formData.get("next") ?? ""))
+  redirect(next.startsWith("/invite/") ? `/login?next=${encodeURIComponent(next)}` : "/login")
 }
 
 export async function updateProfile(formData: FormData) {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { invitationKeepsSession } from "@/lib/auth/invite-session"
 import { safeNextPath } from "@/lib/env"
 import { createClient } from "@/lib/supabase/server"
 
@@ -13,6 +14,7 @@ export async function GET(request: Request) {
     if (!error) {
       const { error: bootError } = await supabase.rpc("bootstrap_membership")
       if (bootError) {
+        if (await invitationKeepsSession(next)) return NextResponse.redirect(new URL(next, url.origin))
         await supabase.auth.signOut()
         return NextResponse.redirect(new URL("/login?error=invite", url.origin))
       }

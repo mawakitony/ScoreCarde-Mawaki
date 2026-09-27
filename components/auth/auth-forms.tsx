@@ -34,6 +34,7 @@ export function LoginForm({ next, configured }: { next: string; configured: bool
         <AuthForm
           configured={configured}
           action={async (formData) => {
+            formData.set("next", next)
             const result = await sendMagicLink(formData)
             if (result?.error) toast.error(result.error)
             if (result?.message) toast.success(result.message)
@@ -47,13 +48,14 @@ export function LoginForm({ next, configured }: { next: string; configured: bool
   )
 }
 
-export function SignupForm({ configured }: { configured: boolean }) {
+export function SignupForm({ configured, next, defaultEmail }: { configured: boolean; next: string; defaultEmail?: string }) {
   const [message, setMessage] = useState<string | null>(null)
 
   return (
     <AuthForm
       configured={configured}
       action={async (formData) => {
+        formData.set("next", next)
         const result = await signUp(formData)
         if (result?.error) toast.error(result.error)
         if (result?.message) setMessage(result.message)
@@ -63,7 +65,7 @@ export function SignupForm({ configured }: { configured: boolean }) {
         <Label htmlFor="fullName">Nom</Label>
         <Input id="fullName" name="fullName" className="h-10" required />
       </div>
-      <EmailField />
+      <EmailField defaultValue={defaultEmail} />
       <PasswordField />
       <Submit label="Créer le compte" />
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
@@ -94,11 +96,11 @@ function AuthForm({
   )
 }
 
-function EmailField() {
+function EmailField({ defaultValue }: { defaultValue?: string }) {
   return (
     <div className="space-y-2">
       <Label htmlFor="email">Email</Label>
-      <Input id="email" name="email" type="email" autoComplete="email" className="h-10" required />
+      <Input id="email" name="email" type="email" autoComplete="email" className="h-10" required defaultValue={defaultValue} />
     </div>
   )
 }

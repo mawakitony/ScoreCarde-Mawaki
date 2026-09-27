@@ -1,5 +1,6 @@
 import "server-only"
 
+import { openSecretValue } from "@/lib/auth/first-access"
 import { sendBrevoEmail } from "@/lib/email/brevo"
 import { nextEmailAttempt, renderEmail, type EmailTemplate } from "@/lib/email/templates"
 import { recordHeartbeat } from "@/lib/platform/heartbeat"
@@ -14,7 +15,17 @@ export async function processEmailJobs() {
   for (const job of data ?? []) {
     const claimed = await admin.from("email_jobs").update({ status: "processing", attempts: job.attempts + 1 }).eq("id", job.id).eq("status", "pending").select("id")
     if (!claimed.data?.length) continue
-    const payload = record(job.payload)
+    const payload = unsealRecord(record(job.payload))
+    if (!payload || (job.template === "first_access" && !payload.accessCode)) {
+      const next = nextEmailAttempt(job.attempts)
+      await admin.from("email_jobs").update({
+        status: next.status === "dead" ? "dead" : "pending",
+        next_run_at: next.nextRunAt ?? new Date().toISOString(),
+        last_error: "payload_unavailable",
+      }).eq("id", job.id)
+      log("warn", "email.retry", { template: job.template, recipient_hash: job.recipient_hash, status: next.status })
+      continue
+    }
     const message = renderEmail({ template: job.template as EmailTemplate, locale: job.locale, payload })
     const result = await sendBrevoEmail({ to: job.recipient, subject: message.subject, text: message.text })
     if (result.configured && result.ok) {
@@ -44,4 +55,19 @@ export async function processEmailJobs() {
 function record(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {}
   return Object.fromEntries(Object.entries(value).flatMap(([key, item]) => typeof item === "string" ? [[key, item]] : []))
+}
+
+function unsealRecord(payload: Record<string, string>) {
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
+  const next: Record<string, string> = {}
+  for (const [key, value] of Object.entries(payload)) {
+    if (!value.startsWith("enc:")) {
+      next[key] = value
+      continue
+    }
+    const opened = openSecretValue(value, secret)
+    if (!opened) return null
+    next[key] = opened
+  }
+  return next
 }

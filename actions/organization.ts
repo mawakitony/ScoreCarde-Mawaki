@@ -5,7 +5,9 @@ import { redirect } from "next/navigation"
 import { promises as dns } from "node:dns"
 import { randomBytes } from "node:crypto"
 import { can } from "@/lib/auth/permissions"
-import { createInviteToken, hashInviteToken, inviteExpiry } from "@/lib/auth/invitations"
+import { hashInviteToken, inviteExpiry, createInviteToken } from "@/lib/auth/invitations"
+import { emailsMatch, inviteReturnPath, mapAcceptError } from "@/lib/auth/invitation-flow"
+import { loadInvitePreview } from "@/lib/auth/invite-lookup"
 import { enqueueEmail } from "@/lib/email/queue"
 import { invitationIdempotencyKey } from "@/lib/email/templates"
 import { getAppUrl } from "@/lib/env"
@@ -92,13 +94,20 @@ export async function inviteMember(formData: FormData) {
   }).select("id").single()
   if (error || !invitation) return { error: "L'invitation n'a pas pu être créée." }
   const { data: organization } = await admin.from("organizations").select("name, default_language").eq("id", context.membership.organization.id).maybeSingle()
+  const { data: inviter } = await admin.from("profiles").select("full_name").eq("id", context.user.id).maybeSingle()
+  const inviterName = inviter?.full_name?.trim() ?? ""
   const queued = await enqueueEmail({
     organizationId: context.membership.organization.id,
     template: "organization_invitation",
     recipient: email,
     locale: organization?.default_language === "en" ? "en" : "fr",
     idempotencyKey: invitationIdempotencyKey(invitation.id),
-    payload: { organizationName: organization?.name ?? context.membership.organization.name, url: `${getAppUrl()}/invite/${share.token}` },
+    payload: {
+      organizationName: organization?.name ?? context.membership.organization.name,
+      role,
+      url: `${getAppUrl()}/invite/${share.token}`,
+      ...(inviterName ? { inviterName } : {}),
+    },
   })
   if (!queued.queued) return { error: "L'invitation est créée, mais l'email n'a pas pu être mis en file." }
   await admin.from("audit_logs").insert({
@@ -112,17 +121,21 @@ export async function inviteMember(formData: FormData) {
 }
 
 export async function acceptInvitation(token: string) {
+  const back = inviteReturnPath(token)
   const user = await getUser()
-  if (!user) redirect(`/login?next=/invite/${token}`)
-  const admin = createAdminClient()
-  const { data: invitation } = await admin.from("organization_invitations").select("organization_id").eq("token_hash", hashInviteToken(token)).maybeSingle()
-  const limit = invitation ? (await loadEntitlements(invitation.organization_id)).limits.team_members : 0
+  if (!user) redirect(`/login?next=${encodeURIComponent(back)}`)
+  const preview = await loadInvitePreview(token)
+  if (preview.status === "expired" || preview.status === "used" || preview.status === "invalid") {
+    redirect(`${back}?reason=${preview.status}`)
+  }
+  if (!emailsMatch(preview.email, user.email)) redirect(`${back}?reason=email`)
+  const limit = (await loadEntitlements(preview.organizationId)).limits.team_members
   const supabase = await createClient()
   const { error } = await supabase.rpc("accept_organization_invitation", {
     p_token_hash: hashInviteToken(token),
     p_member_limit: limit,
   })
-  if (error) redirect(`/invite/${token}?error=1`)
+  if (error) redirect(`${back}?reason=${mapAcceptError(error.message)}`)
   redirect("/dashboard")
 }
 

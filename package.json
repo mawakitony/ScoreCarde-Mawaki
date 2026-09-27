@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --import ./test/register.mjs --test lib/scoring/engine.test.ts lib/validators/builder.test.ts lib/assessment/flow.test.ts lib/leads/crm.test.ts lib/integrations/integrations.test.ts lib/reports/reports.test.ts lib/billing/billing.test.ts lib/platform/platform.test.ts lib/production/production.test.ts lib/importers/import.test.ts lib/importers/exchange.test.ts lib/scoring/eligibility.test.ts lib/assessment/visibility.test.ts lib/assessment/release.test.ts lib/ui/feedback.test.ts",
+    "test": "node --experimental-strip-types --import ./test/register.mjs --test lib/scoring/engine.test.ts lib/validators/builder.test.ts lib/assessment/flow.test.ts lib/leads/crm.test.ts lib/integrations/integrations.test.ts lib/reports/reports.test.ts lib/billing/billing.test.ts lib/platform/platform.test.ts lib/production/production.test.ts lib/importers/import.test.ts lib/importers/exchange.test.ts lib/scoring/eligibility.test.ts lib/assessment/visibility.test.ts lib/assessment/release.test.ts lib/ui/feedback.test.ts lib/auth/invitation-flow.test.ts lib/auth/first-access.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
