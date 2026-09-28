@@ -1,7 +1,9 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { ConversionForm } from "@/components/leads/conversion-form"
+import { LeadDeleteButton } from "@/components/leads/lead-delete"
 import { LeadEditor } from "@/components/leads/lead-editor"
+import { can } from "@/lib/auth/permissions"
 import { canEdit } from "@/lib/auth/session"
 import { loadLeadFacets } from "@/lib/data/crm"
 import { ensureMembership } from "@/lib/data/membership"
@@ -47,6 +49,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           <Item label="Date" value={formatDate(lead.createdAt)} />
         </dl>
         <LeadEditor leadId={lead.id} status={lead.status} tags={lead.tags} catalog={facets.tags} canEdit={editor} />
+        {membership && can({ role: membership.role }, "lead.edit") ? <LeadDeleteButton leadId={lead.id} /> : null}
         {editor ? <ConversionForm leadId={lead.id} /> : null}
       </header>
 

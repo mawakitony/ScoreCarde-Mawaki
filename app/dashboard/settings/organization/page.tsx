@@ -9,13 +9,18 @@ export const metadata = { title: "Organisation" }
 export default async function OrganizationSettingsPage() {
   await requireUser()
   const membership = await ensureMembership()
-  if (!membership || !can({ role: membership.role }, "team.manage")) return <p>Permission refusée.</p>
+  if (!membership || !can({ role: membership.role }, "team.manage")) {
+    return <p>Vous n&apos;avez pas l&apos;autorisation de modifier les paramètres de l&apos;organisation.</p>
+  }
   const supabase = await createClient()
   const { data } = await supabase.from("organizations").select("name, slug, website, country, timezone, default_language, footer_text").eq("id", membership.organization.id).maybeSingle()
   return (
     <div className="mx-auto max-w-xl space-y-4">
       <h1 className="font-display text-4xl">Organisation</h1>
-      <form action={async (formData) => { await saveOrganization(formData) }} className="space-y-3">
+      <form action={async (formData) => {
+        "use server"
+        await saveOrganization(formData)
+      }} className="space-y-3">
         <input name="name" defaultValue={data?.name ?? ""} className="h-11 w-full rounded-xl border px-3" />
         <input name="slug" defaultValue={data?.slug ?? ""} className="h-11 w-full rounded-xl border px-3" />
         <input name="website" defaultValue={data?.website ?? ""} placeholder="Site web" className="h-11 w-full rounded-xl border px-3" />

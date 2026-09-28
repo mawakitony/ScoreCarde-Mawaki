@@ -5,6 +5,7 @@ import { CSV_EXPORT_LIMIT } from "@/lib/leads/qualification"
 import { analyticsSchema, leadListSchema, questionStatsSchema } from "@/lib/leads/schema"
 import type { LeadFilters } from "@/lib/leads/filters"
 import type { ResolvedRange } from "@/lib/analytics/range"
+import { can } from "@/lib/auth/permissions"
 import { ensureMembership } from "@/lib/data/membership"
 import { createClient } from "@/lib/supabase/server"
 
@@ -12,6 +13,56 @@ function dayBound(day: string, end: boolean) {
   const date = new Date(`${day}T00:00:00.000Z`)
   if (end) date.setUTCDate(date.getUTCDate() + 1)
   return date.toISOString()
+}
+
+export type TrashLead = {
+  id: string
+  name: string
+  email: string | null
+  scorecard: string | null
+  status: string
+  deletedAt: string
+}
+
+export async function queryTrashLeads() {
+  const membership = await ensureMembership()
+  if (!membership) return { error: "Accès refusé." as const, rows: [] as TrashLead[] }
+  if (!can({ role: membership.role }, "lead.read")) return { error: "Accès refusé." as const, rows: [] as TrashLead[] }
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("leads")
+    .select("id, status, deleted_at, scorecard_id, respondent_id")
+    .eq("organization_id", membership.organization.id)
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false })
+    .limit(100)
+  if (error) return { error: "La corbeille n'a pas pu être chargée." as const, rows: [] as TrashLead[] }
+  const respondentIds = [...new Set((data ?? []).map((row) => row.respondent_id).filter((id): id is string => Boolean(id)))]
+  const scorecardIds = [...new Set((data ?? []).map((row) => row.scorecard_id).filter((id): id is string => Boolean(id)))]
+  const [people, cards] = await Promise.all([
+    respondentIds.length > 0
+      ? supabase.from("respondents").select("id, first_name, last_name, email").in("id", respondentIds).eq("organization_id", membership.organization.id)
+      : Promise.resolve({ data: [] }),
+    scorecardIds.length > 0
+      ? supabase.from("scorecards").select("id, name").in("id", scorecardIds).eq("organization_id", membership.organization.id)
+      : Promise.resolve({ data: [] }),
+  ])
+  const names = new Map((people.data ?? []).map((person) => [person.id, person]))
+  const titles = new Map((cards.data ?? []).map((card) => [card.id, card.name]))
+  const rows = (data ?? []).flatMap((row) => {
+    if (!row.deleted_at) return []
+    const person = row.respondent_id ? names.get(row.respondent_id) : null
+    const name = [person?.first_name, person?.last_name].filter(Boolean).join(" ").trim()
+    return [{
+      id: row.id,
+      name: name || "Lead anonymisé",
+      email: person?.email ?? null,
+      scorecard: row.scorecard_id ? titles.get(row.scorecard_id) ?? null : null,
+      status: row.status,
+      deletedAt: row.deleted_at,
+    }]
+  })
+  return { error: null, rows }
 }
 
 export async function queryLeads(filters: LeadFilters, exportAll = false) {

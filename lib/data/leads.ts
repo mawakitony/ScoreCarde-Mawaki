@@ -14,6 +14,7 @@ export async function listLeads(filters: { query?: string; scorecardId?: string 
     .from("leads")
     .select("id, created_at, source, scorecard_id, respondent_id, result_id, session_id")
     .eq("organization_id", membership.organization.id)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(200)
   if (filters.scorecardId) request = request.eq("scorecard_id", filters.scorecardId)
@@ -58,12 +59,21 @@ export async function getLeadDetail(leadId: string) {
   const membership = await ensureMembership()
   if (!membership) return null
   const supabase = await createClient()
-  const { data: lead } = await supabase
+  const selected = await supabase
     .from("leads")
     .select("id, created_at, source, status, scorecard_id, respondent_id, result_id, session_id, organization_id")
     .eq("id", leadId)
     .eq("organization_id", membership.organization.id)
+    .is("deleted_at", null)
     .maybeSingle()
+  const lead = selected.error?.code === "42703"
+    ? (await supabase
+      .from("leads")
+      .select("id, created_at, source, status, scorecard_id, respondent_id, result_id, session_id, organization_id")
+      .eq("id", leadId)
+      .eq("organization_id", membership.organization.id)
+      .maybeSingle()).data
+    : selected.data
   if (!lead) return null
 
   const [person, result, scorecard, utm, events, clicks, responses, session, tags, notes, activities, form] = await Promise.all([

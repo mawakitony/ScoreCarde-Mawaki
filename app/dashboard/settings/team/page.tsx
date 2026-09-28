@@ -1,3 +1,4 @@
+import { TeamMemberList } from "@/components/settings/team-member-list"
 import { TeamPanel } from "@/components/settings/team-panel"
 import { accessIssuedAt, firstAccessHours, pendingInvitationStatus } from "@/lib/auth/first-access"
 import { inviteRoleLabel } from "@/lib/auth/invitation-flow"
@@ -9,7 +10,15 @@ import { createClient } from "@/lib/supabase/server"
 
 export const metadata = { title: "Équipe" }
 
-export default async function TeamPage() {
+export default async function TeamPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ member?: string }>
+}) {
+  const params = await searchParams
+  const highlightId = typeof params.member === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.member)
+    ? params.member
+    : null
   const user = await requireUser()
   const membership = await ensureMembership()
   if (!membership || !can({ role: membership.role }, "team.manage")) return <p>Permission refusée.</p>
@@ -75,15 +84,17 @@ export default async function TeamPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <h1 className="font-display text-4xl">Équipe</h1>
-      <ul className="divide-y rounded-3xl border bg-card">
-        {members.map((member) => (
-          <li key={member.userId} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
-            <span>{member.fullName || member.email || "Membre"} {member.userId === user.id ? "(vous)" : ""}</span>
-            <span>{member.role}</span>
-            <span>Actif</span>
-          </li>
-        ))}
-      </ul>
+      <TeamMemberList
+        canChangeRoles={membership.role === "owner"}
+        currentUserId={user.id}
+        highlightId={highlightId}
+        members={members.map((member) => ({
+          userId: member.userId,
+          role: member.role,
+          fullName: member.fullName,
+          email: member.email,
+        }))}
+      />
       <TeamPanel
         canTransfer={can({ role: membership.role }, "ownership.transfer")}
         members={members.map((member) => ({ userId: member.userId, role: member.role }))}

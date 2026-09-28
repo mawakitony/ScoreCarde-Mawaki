@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --import ./test/register.mjs --test lib/scoring/engine.test.ts lib/validators/builder.test.ts lib/assessment/flow.test.ts lib/leads/crm.test.ts lib/integrations/integrations.test.ts lib/reports/reports.test.ts lib/billing/billing.test.ts lib/platform/platform.test.ts lib/production/production.test.ts lib/importers/import.test.ts lib/importers/exchange.test.ts lib/scoring/eligibility.test.ts lib/assessment/visibility.test.ts lib/assessment/release.test.ts lib/ui/feedback.test.ts lib/auth/invitation-flow.test.ts lib/auth/first-access.test.ts",
+    "test": "node --experimental-strip-types --import ./test/register.mjs --test lib/scoring/engine.test.ts lib/validators/builder.test.ts lib/assessment/flow.test.ts lib/leads/crm.test.ts lib/integrations/integrations.test.ts lib/reports/reports.test.ts lib/billing/billing.test.ts lib/platform/platform.test.ts lib/production/production.test.ts lib/importers/import.test.ts lib/importers/exchange.test.ts lib/scoring/eligibility.test.ts lib/assessment/visibility.test.ts lib/assessment/release.test.ts lib/ui/feedback.test.ts lib/auth/invitation-flow.test.ts lib/auth/first-access.test.ts lib/auth/member-role.test.ts lib/leads/removal.test.ts lib/audit/activity.test.ts lib/search/global.test.ts lib/share/scorecard.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -25,6 +25,7 @@
     "lucide-react": "^1.47.0",
     "next": "16.3.5",
     "next-themes": "^0.4.6",
+    "qrcode": "^1.5.4",
     "radix-ui": "^1.6.7",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -41,10 +42,14 @@
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pngjs": "^6.0.5",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
+    "jsqr": "^1.4.0",
+    "pngjs": "^7.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

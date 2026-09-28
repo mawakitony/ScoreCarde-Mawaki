@@ -30,7 +30,10 @@ export default async function DomainsPage() {
       <p className="text-sm text-muted-foreground">Les adresses `/s/[slug]` restent disponibles. Un domaine vérifié sert la scorecard sur l&apos;hôte du client, sans redirection.</p>
       {process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID ? <p className="text-sm">SSL provisioning est géré par Vercel.</p> : <p className="text-sm">Vercel domain automation is not configured.</p>}
       {allowed ? (
-        <form action={async (formData) => { await addDomain(formData) }} className="flex flex-wrap gap-2">
+        <form action={async (formData) => {
+          "use server"
+          await addDomain(formData)
+        }} className="flex flex-wrap gap-2">
           <input name="domain" placeholder="score.client.com" className="h-11 rounded-xl border px-3" />
           <input name="default_slug" placeholder="slug par défaut" className="h-11 rounded-xl border px-3" />
           <button className="h-11 rounded-xl bg-[#16324F] px-4 text-sm text-[#f7f4ee]" type="submit">Ajouter</button>
@@ -44,10 +47,16 @@ export default async function DomainsPage() {
               <p className="font-medium">{domain.domain} · {domain.status}</p>
               <p className="mt-2 font-mono text-xs">{instructions.record} {instructions.host} {instructions.value}</p>
               <div className="mt-3 flex gap-4">
-                <form action={async () => { await verifyDomain(domain.id) }}>
+                <form action={async () => {
+                  "use server"
+                  await verifyDomain(domain.id)
+                }}>
                   <button className="underline" type="submit">Vérifier</button>
                 </form>
-                <form action={async () => { await removeDomain(domain.id) }}>
+                <form action={async () => {
+                  "use server"
+                  await removeDomain(domain.id)
+                }}>
                   <button className="underline" type="submit">Retirer</button>
                 </form>
               </div>

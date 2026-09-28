@@ -16,7 +16,10 @@ export default async function LeadReportsPage({ params }: { params: Promise<{ id
   const membership = await ensureMembership()
   if (!membership) return null
   const supabase = await createClient()
-  const { data: lead } = await supabase.from("leads").select("id, session_id, status, source").eq("id", id).eq("organization_id", membership.organization.id).maybeSingle()
+  const selected = await supabase.from("leads").select("id, session_id, status, source").eq("id", id).eq("organization_id", membership.organization.id).is("deleted_at", null).maybeSingle()
+  const lead = selected.error?.code === "42703"
+    ? (await supabase.from("leads").select("id, session_id, status, source").eq("id", id).eq("organization_id", membership.organization.id).maybeSingle()).data
+    : selected.data
   if (!lead) notFound()
   const { data: reports, error } = await supabase.from("assessment_reports").select("id, version, status, ai_status, download_count, report_type, created_at, snapshot, ai_output, session_id").eq("lead_id", lead.id).order("created_at", { ascending: false })
   const { data: shares } = await supabase.from("report_shares").select("id, report_id, expires_at, revoked_at").eq("organization_id", membership.organization.id)

@@ -9,12 +9,12 @@ import {
   LayoutTemplate,
   LogOut,
   Menu,
-  Search,
   Settings,
   Users,
 } from "lucide-react"
 import { signOut } from "@/actions/auth"
 import { Logo } from "@/components/brand/logo"
+import { DashboardSearch } from "@/components/dashboard/global-search"
 import { NotificationMenu } from "@/components/dashboard/notification-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -111,14 +111,7 @@ export function DashboardShell({
             </SheetContent>
           </Sheet>
 
-          <form action="/dashboard/scorecards" className="relative hidden min-w-0 flex-1 md:block">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              name="q"
-              placeholder="Rechercher une scorecard"
-              className="h-10 w-full max-w-md rounded-xl border bg-card pr-3 pl-9 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/40"
-            />
-          </form>
+          <DashboardSearch />
 
           <div className="ml-auto flex items-center gap-2">
             <NotificationMenu unread={notifications.filter((item) => !item.read).length} items={notifications} />

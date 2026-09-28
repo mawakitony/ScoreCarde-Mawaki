@@ -341,6 +341,7 @@ export type Database = {
         tags: string[]
         status: "new" | "contacted" | "qualified" | "nurturing" | "converted" | "lost"
         anonymized_at: string | null
+        deleted_at: string | null
         created_at: string
         updated_at: string
       }>
@@ -814,6 +815,10 @@ export type Database = {
           payload: Json
           created_at: string
         }[]
+      }
+      anonymize_lead: {
+        Args: { target_lead: string }
+        Returns: undefined
       }
       create_organization: {
         Args: { p_name: string; p_slug: string; p_use_case: string; p_trial_days: number }

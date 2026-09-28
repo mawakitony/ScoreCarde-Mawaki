@@ -31,6 +31,7 @@ import { enqueueEmail } from "@/lib/email/queue"
 import { getAppUrl } from "@/lib/env"
 import { activeSuspension } from "@/lib/platform/data"
 import { allowRate } from "@/lib/security/rate"
+import { writeActivity } from "@/lib/audit/write"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { loginSchema } from "@/lib/validators/auth"
@@ -328,6 +329,12 @@ export async function resendFirstAccess(formData: FormData): Promise<AccessRevea
   if (limit !== null && await memberCount(row.organization_id) >= limit) return { error: messages.quota }
   const stored = await storeCode(row.id, row.organization_id, row.email, row.role)
   if ("error" in stored) return { error: stored.error ?? "L'accès n'a pas pu être préparé." }
+  await writeActivity({
+    organizationId: row.organization_id,
+    actorId: context.user.id,
+    action: "member.first_access_regenerated",
+    metadata: { role: row.role },
+  })
   revalidatePath("/dashboard/settings/team")
   return revealAccess({
     email: row.email,

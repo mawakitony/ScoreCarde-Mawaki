@@ -1,13 +1,14 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { ShareScorecardButton } from "@/components/scorecard/share-scorecard"
 import { ScorecardForm } from "@/components/scorecard/scorecard-form"
 import { StatusBadge } from "@/components/scorecard/status-badge"
 import { Button } from "@/components/ui/button"
+import { loadScorecardShare } from "@/actions/share"
 import { updateScorecard } from "@/actions/scorecards"
 import { can } from "@/lib/auth/permissions"
 import { ensureMembership } from "@/lib/data/membership"
 import { getScorecard } from "@/lib/data/scorecards"
-import { getAppUrl } from "@/lib/env"
 import { formatDate } from "@/lib/format"
 import { toScorecardFormValues } from "@/lib/scorecard/values"
 
@@ -25,6 +26,7 @@ export default async function ScorecardDetailPage({ params }: { params: Promise<
   const scorecard = await getScorecard(membership.organization.id, id)
   if (!scorecard) notFound()
   const editor = can({ role: membership.role }, "scorecard.edit")
+  const share = await loadScorecardShare(scorecard.id)
 
   return (
     <div className="space-y-8">
@@ -35,10 +37,11 @@ export default async function ScorecardDetailPage({ params }: { params: Promise<
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <StatusBadge status={scorecard.status} />
             <span>Créée le {formatDate(scorecard.created_at)}</span>
-            <span>{getAppUrl()}/s/{scorecard.slug}</span>
+            {share.ok && share.shareable ? <span className="break-all">{share.url}</span> : null}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <ShareScorecardButton scorecardId={scorecard.id} />
           <Button asChild className="h-10" variant="outline">
             <Link href={`/dashboard/scorecards/${scorecard.id}/analytics`}>Analytics</Link>
           </Button>

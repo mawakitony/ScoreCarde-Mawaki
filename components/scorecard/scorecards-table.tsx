@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Copy, Eye, MoreHorizontal, Pause, Pencil, Play, Share2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -24,6 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ShareScorecardDialog } from "@/components/scorecard/share-scorecard"
 import { getAppUrl } from "@/lib/env"
 import { formatDate, formatNumber, formatPercent } from "@/lib/format"
 import type { ScorecardListItem } from "@/lib/data/scorecards"
@@ -118,15 +119,17 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function ScorecardActions({ item }: { item: ScorecardListItem }) {
   const router = useRouter()
+  const triggerRef = useRef<HTMLButtonElement>(null)
   const [open, setOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const paused = item.status === "paused" || item.status === "archived"
-  const publicUrl = `${getAppUrl()}/s/${item.slug}`
+  const previewUrl = `${getAppUrl()}/s/${item.slug}?preview=1`
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" aria-label={`Actions pour ${item.name}`}>
+          <Button ref={triggerRef} variant="ghost" size="icon" aria-label={`Actions pour ${item.name}`}>
             <MoreHorizontal />
           </Button>
         </DropdownMenuTrigger>
@@ -134,7 +137,7 @@ function ScorecardActions({ item }: { item: ScorecardListItem }) {
           <DropdownMenuItem onSelect={() => router.push(`/dashboard/scorecards/${item.id}/builder`)}>
             <Pencil /> Edit
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => window.open(`${publicUrl}?preview=1`, "_blank", "noopener,noreferrer")}>
+          <DropdownMenuItem onSelect={() => window.open(previewUrl, "_blank", "noopener,noreferrer")}>
             <Eye /> Preview
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => router.push(`/dashboard/scorecards/${item.id}/results`)}>
@@ -153,12 +156,8 @@ function ScorecardActions({ item }: { item: ScorecardListItem }) {
           >
             <Copy /> Duplicate
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => {
-              void navigator.clipboard.writeText(publicUrl).then(() => toast.success("Lien copié."))
-            }}
-          >
-            <Share2 /> Share
+          <DropdownMenuItem onSelect={() => setShareOpen(true)}>
+            <Share2 /> Partager
           </DropdownMenuItem>
           <DropdownMenuItem
             onSelect={() => {
@@ -180,6 +179,13 @@ function ScorecardActions({ item }: { item: ScorecardListItem }) {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      <ShareScorecardDialog
+        scorecardId={item.id}
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        onReturnFocus={() => triggerRef.current?.focus()}
+      />
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>

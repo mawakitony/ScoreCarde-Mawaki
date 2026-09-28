@@ -5,6 +5,8 @@ import { requireScorecardEditor } from "@/lib/auth/editor"
 import { evaluatePublish, type PublishCheck } from "@/lib/assessment/publish"
 import { getBuilderBundle } from "@/lib/data/builder"
 import { writePublishedRelease } from "@/actions/release"
+import { writeActivity } from "@/lib/audit/write"
+import { getUser } from "@/lib/auth/session"
 
 export async function loadPublishReport(scorecardId: string): Promise<{ ready: boolean; checks: PublishCheck[]; error?: string }> {
   const context = await requireScorecardEditor(scorecardId)
@@ -49,6 +51,14 @@ export async function publishScorecard(scorecardId: string) {
   if (error) return { error: "La publication a échoué." }
   const released = await writePublishedRelease(scorecardId)
   if (released.error) return { error: released.error }
+  const user = await getUser()
+  const named = await context.supabase.from("scorecards").select("name").eq("id", context.scorecardId).eq("organization_id", context.organizationId).maybeSingle()
+  await writeActivity({
+    organizationId: context.organizationId,
+    actorId: user?.id ?? null,
+    action: "scorecard.published",
+    metadata: { scorecard_name: named.data?.name ?? "Scorecard" },
+  })
   revalidatePath(`/dashboard/scorecards/${scorecardId}/builder`)
   revalidatePath(`/dashboard/scorecards/${scorecardId}`)
   revalidatePath("/dashboard/scorecards")

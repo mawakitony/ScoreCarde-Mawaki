@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { writeActivity } from "@/lib/audit/write"
 import { can } from "@/lib/auth/permissions"
 import { loadEntitlements } from "@/lib/billing/account"
 import { ensureMembership } from "@/lib/data/membership"
@@ -127,7 +128,7 @@ export async function updateScorecard(id: string, values: ScorecardFormValues): 
 export async function setScorecardStatus(id: string, status: ScorecardFormValues["status"]) {
   const context = await editorContext()
   if ("error" in context && context.error) return { error: context.error }
-  const { supabase, membership } = context
+  const { supabase, membership, user } = context
 
   const { error } = await supabase
     .from("scorecards")
@@ -139,6 +140,15 @@ export async function setScorecardStatus(id: string, status: ScorecardFormValues
     .eq("organization_id", membership.organization.id)
 
   if (error) return { error: "Le statut n'a pas pu être modifié." }
+  if (status === "published") {
+    const named = await supabase.from("scorecards").select("name").eq("id", id).eq("organization_id", membership.organization.id).maybeSingle()
+    await writeActivity({
+      organizationId: membership.organization.id,
+      actorId: user.id,
+      action: "scorecard.published",
+      metadata: { scorecard_name: named.data?.name ?? "Scorecard" },
+    })
+  }
   revalidatePath("/dashboard/scorecards")
   return { id }
 }

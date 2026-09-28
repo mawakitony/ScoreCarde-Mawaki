@@ -5,9 +5,11 @@ import { z } from "zod"
 import { canEdit } from "@/lib/auth/session"
 import { getUser } from "@/lib/auth/session"
 import { ensureMembership } from "@/lib/data/membership"
-import { isLeadStatus, LEAD_STATUSES, MAX_TAGS_PER_LEAD, NOTE_LIMIT, TAG_NAME_LIMIT } from "@/lib/leads/qualification"
+import { isLeadStatus, MAX_TAGS_PER_LEAD, NOTE_LIMIT, TAG_NAME_LIMIT } from "@/lib/leads/qualification"
 import { sameOrganization } from "@/lib/leads/qualification"
+import { REDACTED_NOTE, selectionMatches } from "@/lib/leads/removal"
 import { publishIntegrationEvent } from "@/lib/integrations/dispatch"
+import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 
 const noteSchema = z.string().trim().min(1, "La note est vide.").max(NOTE_LIMIT, "La note dépasse 5 000 caractères.")
@@ -42,6 +44,7 @@ export async function changeLeadStatus(leadId: string, status: string) {
     .update({ status })
     .eq("id", leadId)
     .eq("organization_id", context.organizationId)
+    .is("deleted_at", null)
     .select("id")
     .maybeSingle()
   if (error || !data) return { error: "Le statut n'a pas pu être modifié." }
@@ -67,6 +70,7 @@ export async function changeLeadsStatus(ids: string[], status: string) {
     .update({ status })
     .in("id", clean)
     .eq("organization_id", context.organizationId)
+    .is("deleted_at", null)
     .select("id")
   if (error || !data) return { error: "Le statut n'a pas pu être modifié." }
   if (data.length > 0) {
@@ -90,7 +94,7 @@ export async function addLeadNote(leadId: string, content: string) {
   if (!uuid.safeParse(leadId).success || !parsed.success) return { error: parsed.success ? "Lead invalide." : parsed.error.issues[0]?.message ?? "Note invalide." }
   const context = await editor()
   if ("error" in context) return context
-  const { data: lead } = await context.supabase.from("leads").select("id, organization_id").eq("id", leadId).eq("organization_id", context.organizationId).maybeSingle()
+  const { data: lead } = await context.supabase.from("leads").select("id, organization_id").eq("id", leadId).eq("organization_id", context.organizationId).is("deleted_at", null).maybeSingle()
   if (!lead || !sameOrganization(lead.organization_id, context.organizationId)) return { error: "Lead introuvable." }
   const { error } = await context.supabase.from("lead_notes").insert({
     organization_id: context.organizationId,
@@ -161,7 +165,7 @@ export async function assignLeadTag(leadId: string, tagId: string) {
   const context = await editor()
   if ("error" in context) return context
   const tag = await assertTag(tagId, context.organizationId)
-  const { data: lead } = await context.supabase.from("leads").select("id, organization_id").eq("id", leadId).eq("organization_id", context.organizationId).maybeSingle()
+  const { data: lead } = await context.supabase.from("leads").select("id, organization_id").eq("id", leadId).eq("organization_id", context.organizationId).is("deleted_at", null).maybeSingle()
   if (!tag || !lead || !sameOrganization(lead.organization_id, tag.organization_id)) return { error: "Ce tag n'appartient pas à cette organisation." }
   const { count } = await context.supabase.from("lead_tag_assignments").select("tag_id", { count: "exact", head: true }).eq("lead_id", leadId)
   if ((count ?? 0) >= MAX_TAGS_PER_LEAD) return { error: "20 tags maximum par lead." }
@@ -187,7 +191,7 @@ export async function assignTagToLeads(ids: string[], tagId: string) {
   if ("error" in context) return context
   const tag = await assertTag(tagId, context.organizationId)
   if (!tag) return { error: "Ce tag n'appartient pas à cette organisation." }
-  const { data: leads } = await context.supabase.from("leads").select("id, organization_id").in("id", clean).eq("organization_id", context.organizationId)
+  const { data: leads } = await context.supabase.from("leads").select("id, organization_id").in("id", clean).eq("organization_id", context.organizationId).is("deleted_at", null)
   const allowed = (leads ?? []).filter((lead) => sameOrganization(lead.organization_id, tag.organization_id))
   if (allowed.length === 0) return { error: "Lead introuvable." }
   const { data: existing } = await context.supabase.from("lead_tag_assignments").select("lead_id").in("lead_id", allowed.map((lead) => lead.id))
@@ -229,4 +233,135 @@ export async function removeLeadTag(leadId: string, tagId: string) {
   return { ok: true as const }
 }
 
-export { LEAD_STATUSES }
+export async function deleteLeads(ids: string[]): Promise<{ ok: true; count: number } | { error: string }> {
+  const clean = [...new Set(ids.filter((id) => uuid.safeParse(id).success))].slice(0, 100)
+  if (clean.length === 0) return { error: "Sélection invalide." }
+  const context = await editor()
+  if ("error" in context) return { error: "Permission refusée." }
+  const { data: found, error: readError } = await context.supabase
+    .from("leads")
+    .select("id, organization_id")
+    .in("id", clean)
+    .eq("organization_id", context.organizationId)
+    .is("deleted_at", null)
+  if (readError || !found || !selectionMatches(clean, found.map((lead) => lead.id))) {
+    return { error: "Impossible de supprimer cette sélection." }
+  }
+  if (found.some((lead) => !sameOrganization(lead.organization_id, context.organizationId))) {
+    return { error: "Impossible de supprimer cette sélection." }
+  }
+  const { data: updated, error } = await context.supabase
+    .from("leads")
+    .update({ deleted_at: new Date().toISOString() })
+    .in("id", clean)
+    .eq("organization_id", context.organizationId)
+    .is("deleted_at", null)
+    .select("id")
+  if (error || !updated || !selectionMatches(clean, updated.map((lead) => lead.id))) {
+    return { error: "Impossible de supprimer cette sélection." }
+  }
+  const admin = createAdminClient()
+  const { error: auditError } = await admin.from("audit_logs").insert(updated.map((lead) => ({
+    organization_id: context.organizationId,
+    actor_id: context.userId,
+    action: "lead.deleted",
+    metadata: { actor_user_id: context.userId, lead_id: lead.id },
+  })))
+  if (auditError) {
+    await context.supabase.from("leads").update({ deleted_at: null }).in("id", clean).eq("organization_id", context.organizationId)
+    return { error: "Impossible de supprimer cette sélection." }
+  }
+  refresh()
+  return { ok: true, count: updated.length }
+}
+
+const PERSONAL_FIELDS = ["email", "first_name", "last_name", "phone", "whatsapp", "phone_normalized", "whatsapp_normalized", "company", "job_title", "city", "country"] as const
+
+async function deletedLead(context: { supabase: Awaited<ReturnType<typeof createClient>>; organizationId: string }, leadId: string) {
+  const { data } = await context.supabase
+    .from("leads")
+    .select("id, organization_id, respondent_id, deleted_at")
+    .eq("id", leadId)
+    .eq("organization_id", context.organizationId)
+    .not("deleted_at", "is", null)
+    .maybeSingle()
+  if (!data || !sameOrganization(data.organization_id, context.organizationId) || !data.deleted_at) return null
+  return data
+}
+
+export async function restoreLead(leadId: string): Promise<{ ok: true } | { error: string }> {
+  if (!uuid.safeParse(leadId).success) return { error: "Impossible de restaurer ce lead." }
+  const context = await editor()
+  if ("error" in context) return { error: "Permission refusée." }
+  const lead = await deletedLead(context, leadId)
+  if (!lead) return { error: "Impossible de restaurer ce lead." }
+  const { data: updated, error } = await context.supabase
+    .from("leads")
+    .update({ deleted_at: null })
+    .eq("id", lead.id)
+    .eq("organization_id", context.organizationId)
+    .not("deleted_at", "is", null)
+    .select("id")
+    .maybeSingle()
+  if (error || !updated) return { error: "Impossible de restaurer ce lead." }
+  const admin = createAdminClient()
+  const { error: auditError } = await admin.from("audit_logs").insert({
+    organization_id: context.organizationId,
+    actor_id: context.userId,
+    action: "lead.restored",
+    metadata: { actor_user_id: context.userId, lead_id: lead.id },
+  })
+  if (auditError) {
+    await context.supabase.from("leads").update({ deleted_at: lead.deleted_at }).eq("id", lead.id).eq("organization_id", context.organizationId)
+    return { error: "Impossible de restaurer ce lead." }
+  }
+  refresh(lead.id)
+  return { ok: true }
+}
+
+export async function anonymizeLead(leadId: string): Promise<{ ok: true } | { error: string }> {
+  if (!uuid.safeParse(leadId).success) return { error: "Impossible d'anonymiser ce lead." }
+  const context = await editor()
+  if ("error" in context) return { error: "Permission refusée." }
+  const lead = await deletedLead(context, leadId)
+  if (!lead) return { error: "Impossible d'anonymiser ce lead." }
+  const { error: rpcError } = await context.supabase.rpc("anonymize_lead", { target_lead: lead.id })
+  if (rpcError) return { error: "Impossible d'anonymiser ce lead." }
+  if (lead.respondent_id) {
+    const { error: personError } = await context.supabase.from("respondents").update({
+      email: null,
+      first_name: null,
+      last_name: null,
+      phone: null,
+      whatsapp: null,
+      phone_normalized: null,
+      whatsapp_normalized: null,
+      company: null,
+      job_title: null,
+      city: null,
+      country: null,
+    }).eq("id", lead.respondent_id).eq("organization_id", context.organizationId)
+    if (personError) return { error: "L'anonymisation des données personnelles n'a pas abouti." }
+  }
+  const { error: noteError } = await context.supabase.from("lead_notes").update({ content: REDACTED_NOTE }).eq("lead_id", lead.id).eq("organization_id", context.organizationId)
+  if (noteError) return { error: "L'anonymisation des notes n'a pas abouti." }
+  const [{ data: person }, { data: notes }, { data: stillThere }] = await Promise.all([
+    lead.respondent_id
+      ? context.supabase.from("respondents").select("email, first_name, last_name, phone, whatsapp, phone_normalized, whatsapp_normalized, company, job_title, city, country").eq("id", lead.respondent_id).eq("organization_id", context.organizationId).maybeSingle()
+      : Promise.resolve({ data: null }),
+    context.supabase.from("lead_notes").select("content").eq("lead_id", lead.id).eq("organization_id", context.organizationId),
+    context.supabase.from("leads").select("id, deleted_at, status").eq("id", lead.id).eq("organization_id", context.organizationId).maybeSingle(),
+  ])
+  const personLeak = person ? PERSONAL_FIELDS.some((field) => person[field]) : false
+  const noteLeak = (notes ?? []).some((note) => note.content !== REDACTED_NOTE)
+  if (personLeak || noteLeak || !stillThere?.deleted_at) return { error: "L'anonymisation des données personnelles n'a pas abouti." }
+  const admin = createAdminClient()
+  await admin.from("audit_logs").insert({
+    organization_id: context.organizationId,
+    actor_id: context.userId,
+    action: "lead.anonymized",
+    metadata: { actor_user_id: context.userId, lead_id: lead.id },
+  })
+  refresh(lead.id)
+  return { ok: true }
+}

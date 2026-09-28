@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { assignTagToLeads, changeLeadsStatus, changeLeadStatus } from "@/actions/leads"
+import { LeadDeleteDialog } from "@/components/leads/lead-delete"
 import { filtersToSearch, LEAD_SORTS, PAGE_SIZES, type LeadFilters } from "@/lib/leads/filters"
 import { LEAD_STATUSES, LEAD_TEMPERATURES } from "@/lib/leads/qualification"
 import { formatDate } from "@/lib/format"
@@ -41,6 +42,8 @@ export function LeadsBoard({
   filters,
   facets,
   canEdit,
+  canExport,
+  canDelete,
   error,
 }: {
   rows: Row[]
@@ -48,14 +51,20 @@ export function LeadsBoard({
   filters: LeadFilters
   facets: { tags: Tag[]; ranges: { id: string; label: string }[]; countries: string[]; sources: string[]; campaigns: string[]; scorecards: { id: string; name: string }[] }
   canEdit: boolean
+  canExport: boolean
+  canDelete: boolean
   error: string | null
 }) {
   const router = useRouter()
   const [query, setQuery] = useState(filters.query)
   const [selected, setSelected] = useState<string[]>([])
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null)
   const [message, setMessage] = useState("")
   const pages = Math.max(1, Math.ceil(total / filters.size))
   const exportParams = filtersToSearch({ ...filters, page: 1, ids: [] })
+  const pageIds = rows.map((row) => row.id)
+  const pageSelected = pageIds.length > 0 && pageIds.every((id) => selected.includes(id))
+  const selectionLabel = `${selected.length} lead${selected.length > 1 ? "s" : ""} sélectionné${selected.length > 1 ? "s" : ""}`
   const active = Boolean(filters.query || filters.status || filters.temperature || filters.scorecardId || filters.country || filters.tagId || filters.resultRangeId || filters.scoreMin !== null || filters.scoreMax !== null || filters.from || filters.to || filters.utmSource || filters.utmCampaign || filters.cta)
 
   useEffect(() => {
@@ -73,6 +82,13 @@ export function LeadsBoard({
 
   function update(partial: Partial<LeadFilters>) {
     push({ ...filters, ...partial, page: 1, ids: [] })
+  }
+
+  function selectPage(checked: boolean) {
+    setSelected((current) => {
+      if (!checked) return current.filter((id) => !pageIds.includes(id))
+      return [...new Set([...current, ...pageIds])]
+    })
   }
 
   async function run(action: () => Promise<{ error?: string; ok?: true }>) {
@@ -106,24 +122,34 @@ export function LeadsBoard({
       <div className="flex flex-wrap items-center gap-3 text-sm">
         <span>{total} lead{total > 1 ? "s" : ""}</span>
         {active ? <Link className="underline" href="/dashboard/leads">Effacer les filtres</Link> : null}
-        <a className="underline" href={`/dashboard/leads/export?${exportParams}`}>Exporter le filtre</a>
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a className="underline" href="/dashboard/leads/export">Exporter tout</a>
-        {selected.length > 0 ? <a className="underline" href={`/dashboard/leads/export?ids=${selected.join(",")}`}>Exporter la sélection</a> : null}
+        {canExport ? <a className="underline" href={`/dashboard/leads/export?${exportParams}`}>Exporter le filtre</a> : null}
+        {canExport ? (
+          // eslint-disable-next-line @next/next/no-html-link-for-pages -- CSV file route
+          <a className="underline" href="/dashboard/leads/export">Exporter tout</a>
+        ) : null}
+        {rows.length > 0 ? <button className="underline" type="button" onClick={() => selectPage(true)}>Sélectionner la page</button> : null}
+        {selected.length > 0 ? <button className="underline" type="button" onClick={() => setSelected([])}>Désélectionner tout</button> : null}
+        {selected.length > 0 ? <span>{selectionLabel}</span> : null}
       </div>
       {error ? <p className="text-sm text-destructive" role="alert">{error}</p> : null}
       {message ? <p className="text-sm text-destructive" role="alert">{message}</p> : null}
-      {canEdit && selected.length > 0 ? (
+      {selected.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border bg-card p-3">
-          <span className="text-sm">{selected.length} sélectionné{selected.length > 1 ? "s" : ""}</span>
-          <select aria-label="Changer le statut" className="h-10 rounded-lg border px-2 text-sm" defaultValue="" onChange={(event) => { if (event.target.value) void run(() => changeLeadsStatus(selected, event.target.value)) }}>
-            <option value="">Changer le statut</option>
-            {LEAD_STATUSES.map((status) => <option key={status} value={status}>{statusLabel[status]}</option>)}
-          </select>
-          <select aria-label="Ajouter un tag" className="h-10 rounded-lg border px-2 text-sm" defaultValue="" onChange={(event) => { if (event.target.value) void run(() => assignTagToLeads(selected, event.target.value)) }}>
-            <option value="">Ajouter un tag</option>
-            {facets.tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
-          </select>
+          <span className="text-sm">{selectionLabel}</span>
+          {canExport ? <a className="underline" href={`/dashboard/leads/export?ids=${selected.join(",")}`}>Exporter la sélection</a> : null}
+          {canEdit ? (
+            <>
+              <select aria-label="Changer le statut" className="h-10 rounded-lg border px-2 text-sm" defaultValue="" onChange={(event) => { if (event.target.value) void run(() => changeLeadsStatus(selected, event.target.value)) }}>
+                <option value="">Changer le statut</option>
+                {LEAD_STATUSES.map((status) => <option key={status} value={status}>{statusLabel[status]}</option>)}
+              </select>
+              <select aria-label="Ajouter un tag" className="h-10 rounded-lg border px-2 text-sm" defaultValue="" onChange={(event) => { if (event.target.value) void run(() => assignTagToLeads(selected, event.target.value)) }}>
+                <option value="">Ajouter un tag</option>
+                {facets.tags.map((tag) => <option key={tag.id} value={tag.id}>{tag.name}</option>)}
+              </select>
+            </>
+          ) : null}
+          {canDelete ? <button className="text-sm text-destructive underline" type="button" onClick={() => setPendingDelete(selected)}>Supprimer la sélection</button> : null}
         </div>
       ) : null}
       {rows.length === 0 ? (
@@ -137,12 +163,16 @@ export function LeadsBoard({
             {rows.map((row) => (
               <article key={row.id} className="rounded-2xl border bg-card p-4 text-sm">
                 <div className="flex items-start justify-between gap-3">
-                  <Link className="font-medium underline" href={`/dashboard/leads/${row.id}`}>{row.name}</Link>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" aria-label={`Sélectionner ${row.name}`} checked={selected.includes(row.id)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, row.id] : current.filter((id) => id !== row.id))} />
+                    <Link className="font-medium underline" href={`/dashboard/leads/${row.id}`}>{row.name}</Link>
+                  </label>
                   <Badge value={temperatureLabel[row.temperature] ?? row.temperature} />
                 </div>
                 <p className="mt-1 text-muted-foreground">{row.email || row.phone || "—"}</p>
                 <p className="mt-2">{statusLabel[row.status] ?? row.status} · {row.score === null ? "—" : `${Math.round(row.score)} %`} · {row.country || "—"}</p>
                 <p className="text-muted-foreground">{row.scorecard || "—"} · {row.utm_source || "direct"}</p>
+                {canDelete ? <button className="mt-2 text-destructive underline" type="button" onClick={() => setPendingDelete([row.id])}>Supprimer le lead</button> : null}
               </article>
             ))}
           </div>
@@ -150,10 +180,13 @@ export function LeadsBoard({
             <table className="w-full min-w-[880px] text-left text-sm">
               <thead className="bg-muted/50 text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-3"><span className="sr-only">Sélection</span></th>
+                  <th className="px-3 py-3">
+                    <input type="checkbox" aria-label="Sélectionner la page" checked={pageSelected} onChange={(event) => selectPage(event.target.checked)} />
+                  </th>
                   {["Lead", "Contact", "Country", "Score", "Temperature", "Status", "Scorecard", "Source", "Created"].map((label) => (
                     <th key={label} className="px-3 py-3 font-medium">{label}</th>
                   ))}
+                  {canDelete ? <th className="px-3 py-3"><span className="sr-only">Suppression</span></th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -180,6 +213,7 @@ export function LeadsBoard({
                     <td className="px-3 py-3">{row.scorecard || "—"}</td>
                     <td className="px-3 py-3">{row.utm_source || "direct"}</td>
                     <td className="px-3 py-3">{formatDate(row.created_at)}</td>
+                    {canDelete ? <td className="px-3 py-3"><button className="text-destructive underline" type="button" onClick={() => setPendingDelete([row.id])}>Supprimer le lead</button></td> : null}
                   </tr>
                 ))}
               </tbody>
@@ -199,6 +233,12 @@ export function LeadsBoard({
           <button type="button" className="underline disabled:opacity-40" disabled={filters.page >= pages} onClick={() => push({ ...filters, page: filters.page + 1 })}>Suivant</button>
         </div>
       </div>
+      <LeadDeleteDialog
+        ids={pendingDelete ?? []}
+        open={Boolean(pendingDelete?.length)}
+        onOpenChange={(open) => { if (!open) setPendingDelete(null) }}
+        onDone={() => setSelected([])}
+      />
     </div>
   )
 }

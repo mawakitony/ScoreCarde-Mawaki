@@ -35,6 +35,7 @@ export default async function SettingsPage() {
           <Link href="/dashboard/settings/integrations" className="underline">Intégrations</Link>
           <Link href="/dashboard/settings/reports" className="underline">Rapports</Link>
           <Link href="/dashboard/settings/ai" className="underline">IA</Link>
+          <Link href="/dashboard/settings/activity" className="underline">Journal d&apos;activité</Link>
         </p>
       </div>
 

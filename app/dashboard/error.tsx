@@ -11,9 +11,7 @@ export default function DashboardError({
   return (
     <div className="rounded-2xl border bg-card p-8">
       <h1 className="font-display text-3xl">Impossible de charger cette page</h1>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Vérifiez la connexion à Supabase, puis réessayez.
-      </p>
+      <p className="mt-2 text-sm text-muted-foreground">Réessayez dans quelques instants.</p>
       <Button className="mt-6" onClick={reset}>
         Réessayer
       </Button>
