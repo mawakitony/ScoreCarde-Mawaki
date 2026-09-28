@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   BarChart3,
+  BookOpen,
   Files,
   LayoutDashboard,
   LayoutTemplate,
@@ -36,6 +37,7 @@ const items = [
   { href: "/dashboard/leads", label: "Leads", icon: Users, exact: false },
   { href: "/dashboard/analytics", label: "Statistiques", icon: BarChart3, exact: false },
   { href: "/dashboard/templates", label: "Modèles", icon: LayoutTemplate, exact: false },
+  { href: "/dashboard/guide", label: "Guide d'utilisation", icon: BookOpen, exact: false },
   { href: "/dashboard/settings", label: "Réglages", icon: Settings, exact: false },
 ]
 

@@ -12,6 +12,19 @@
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-heading: var(--font-display);
   --color-brass: var(--brass);
+  --color-brass-ink: var(--brass-ink);
+  --color-guide-tip: var(--guide-tip);
+  --color-guide-tip-line: var(--guide-tip-line);
+  --color-guide-tip-title: var(--guide-tip-title);
+  --color-guide-info: var(--guide-info);
+  --color-guide-info-line: var(--guide-info-line);
+  --color-guide-info-title: var(--guide-info-title);
+  --color-guide-warn: var(--guide-warn);
+  --color-guide-warn-line: var(--guide-warn-line);
+  --color-guide-warn-title: var(--guide-warn-title);
+  --color-guide-example: var(--guide-example);
+  --color-guide-example-line: var(--guide-example-line);
+  --color-guide-example-title: var(--guide-example-title);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -70,6 +83,19 @@
   --input: #e3dacb;
   --ring: #b8923a;
   --brass: #c4a15a;
+  --brass-ink: #1a1408;
+  --guide-tip: #e8f3ec;
+  --guide-tip-line: #3d7a52;
+  --guide-tip-title: #1f5a34;
+  --guide-info: #e7eef5;
+  --guide-info-line: #16324f;
+  --guide-info-title: #16324f;
+  --guide-warn: #f8f1de;
+  --guide-warn-line: #a8843a;
+  --guide-warn-title: #7a5e22;
+  --guide-example: #f3eef8;
+  --guide-example-line: #6d5484;
+  --guide-example-title: #4e3a66;
   --chart-1: #16324f;
   --chart-2: #c4a15a;
   --chart-3: #2f6f73;
@@ -118,6 +144,30 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --brass: #c4a15a;
+  --brass-ink: #1a1408;
+  --guide-tip: rgb(61 122 82 / 18%);
+  --guide-tip-line: #8fceb0;
+  --guide-tip-title: #d5f0e2;
+  --guide-info: rgb(198 216 234 / 12%);
+  --guide-info-line: #c5d4e4;
+  --guide-info-title: #e7f0f8;
+  --guide-warn: rgb(196 161 90 / 16%);
+  --guide-warn-line: #c4a15a;
+  --guide-warn-title: #f3e6c4;
+  --guide-example: rgb(140 110 170 / 18%);
+  --guide-example-line: #d4c2e4;
+  --guide-example-title: #f0e6f8;
+}
+
+@keyframes guide-flash {
+  0% { background-color: var(--muted); }
+  100% { background-color: transparent; }
+}
+
+.guide-flash {
+  animation: guide-flash 1.6s ease;
+  border-radius: 0.5rem;
 }
 
 @layer base {
