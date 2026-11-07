@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { AlertCircle, CheckCircle2, Rocket } from "lucide-react"
 import { toast } from "sonner"
 import { loadPublishReport, publishScorecard } from "@/actions/publish"
 import { Button } from "@/components/ui/button"
@@ -15,6 +16,8 @@ import {
 } from "@/components/ui/dialog"
 import type { BuilderStepId } from "@/lib/constants"
 import type { PublishCheck } from "@/lib/assessment/publish"
+import { WS_FOCUS, WS_LINK } from "@/lib/ui/workspace-surface"
+import { cn } from "@/lib/utils"
 
 function refreshFromServer(router: { refresh: () => void }) {
   const url = new URL(window.location.href)
@@ -59,13 +62,24 @@ export function PublishDialog({ scorecardId, onFix }: { scorecardId: string; onF
 
   return (
     <>
-      <Button type="button" className="h-10" onClick={() => void openReport()}>
+      <Button
+        type="button"
+        className={cn(
+          "h-9 rounded-xl bg-[color:var(--brand-950)] text-white",
+          "dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]",
+          WS_FOCUS,
+        )}
+        onClick={() => void openReport()}
+      >
+        <Rocket className="size-3.5" aria-hidden />
         Publier
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{checks === null ? "Vérification" : ready ? "Prêt à publier ?" : "Publication impossible"}</DialogTitle>
+            <DialogTitle>
+              {checks === null ? "Vérification" : ready ? "Prêt à publier ?" : "Publication impossible"}
+            </DialogTitle>
             <DialogDescription>
               {checks === null
                 ? "Contrôle du questionnaire avant publication."
@@ -74,18 +88,32 @@ export function PublishDialog({ scorecardId, onFix }: { scorecardId: string; onF
                   : "Corrigez les points suivants avant la publication."}
             </DialogDescription>
           </DialogHeader>
-          {checks === null ? <p className="text-sm text-muted-foreground" aria-live="polite">Vérification…</p> : null}
-          <ul className="space-y-2 text-sm">
+          {checks === null ? (
+            <p className="text-sm text-muted-foreground" aria-live="polite">
+              Vérification…
+            </p>
+          ) : null}
+          <ul className="space-y-2.5 text-sm">
             {(checks ?? []).map((check) => (
-              <li key={check.id}>
-                <p>
-                  {check.ok ? "✓" : "–"} {check.label}
+              <li
+                key={check.id}
+                className="rounded-xl border border-border bg-muted/30 px-3 py-2.5"
+              >
+                <p className="flex items-start gap-2 font-medium text-foreground">
+                  {check.ok ? (
+                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[color:var(--brand-500)]" aria-hidden />
+                  ) : (
+                    <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+                  )}
+                  {check.label}
                 </p>
-                {!check.ok && check.detail ? <p className="pl-4 text-destructive">{check.detail}</p> : null}
+                {!check.ok && check.detail ? (
+                  <p className="mt-1 pl-6 text-[13px] text-destructive">{check.detail}</p>
+                ) : null}
                 {!check.ok ? (
                   <button
                     type="button"
-                    className="pl-4 text-sm underline"
+                    className={cn("mt-1.5 pl-6 text-[13px]", WS_LINK)}
                     onClick={() => {
                       setOpen(false)
                       onFix(check.step)
@@ -98,10 +126,16 @@ export function PublishDialog({ scorecardId, onFix }: { scorecardId: string; onF
             ))}
           </ul>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setOpen(false)}>
               Fermer
             </Button>
-            <Button type="button" disabled={!ready || pending} aria-busy={pending} onClick={() => void publish()}>
+            <Button
+              type="button"
+              className="rounded-xl"
+              disabled={!ready || pending}
+              aria-busy={pending}
+              onClick={() => void publish()}
+            >
               {pending ? "Publication…" : "Publier"}
             </Button>
           </DialogFooter>

@@ -1,7 +1,8 @@
 import "server-only"
 
 import { processEmailJobs } from "@/lib/email/worker"
-import { enqueueEmail } from "@/lib/email/queue"
+import { GRACE_PERIOD_DAYS } from "@/lib/billing/plans"
+import { enqueueOwnerBillingEmail, enqueueTrialReminders } from "@/lib/platform/reminders"
 import { recordHeartbeat } from "@/lib/platform/heartbeat"
 import { createAdminClient } from "@/lib/supabase/admin"
 
@@ -17,29 +18,31 @@ export async function runMaintenance() {
   await admin.from("assessment_sessions").update({ status: "abandoned" }).in("status", ["started", "in_progress"]).lt("expires_at", now)
   await admin.from("email_jobs").update({ status: "pending" }).eq("status", "processing").lt("next_run_at", new Date(Date.now() - 15 * 60 * 1000).toISOString())
   await processEmailJobs()
-  await notifyTrials(admin)
+  await enqueueTrialReminders()
+  await enqueueGraceEndingNotices(admin)
   const retention = Number(process.env.REPORT_RETENTION_DAYS ?? 0)
   if (Number.isFinite(retention) && retention > 0) await expireReports(admin, retention)
   await recordHeartbeat("maintenance_worker")
 }
 
-async function notifyTrials(admin: ReturnType<typeof createAdminClient>) {
-  const soon = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
-  const { data } = await admin.from("subscriptions").select("organization_id, trial_end").eq("status", "trialing").gt("trial_end", new Date().toISOString()).lte("trial_end", soon).limit(50)
+async function enqueueGraceEndingNotices(admin: ReturnType<typeof createAdminClient>) {
+  const graceMs = GRACE_PERIOD_DAYS * 24 * 60 * 60 * 1000
+  const endingSoon = new Date(Date.now() - graceMs + 24 * 60 * 60 * 1000).toISOString()
+  const endingPassed = new Date(Date.now() - graceMs).toISOString()
+  const { data } = await admin
+    .from("subscriptions")
+    .select("organization_id, past_due_at")
+    .eq("status", "past_due")
+    .not("past_due_at", "is", null)
+    .lte("past_due_at", endingSoon)
+    .gt("past_due_at", endingPassed)
+    .limit(50)
   for (const row of data ?? []) {
-    if (!row.trial_end) continue
-    const { data: owner } = await admin.from("organization_members").select("user_id").eq("organization_id", row.organization_id).eq("role", "owner").limit(1).maybeSingle()
-    if (!owner) continue
-    const { data: profile } = await admin.from("profiles").select("email").eq("id", owner.user_id).maybeSingle()
-    if (!profile?.email) continue
-    const { data: organization } = await admin.from("organizations").select("name, default_language").eq("id", row.organization_id).maybeSingle()
-    await enqueueEmail({
+    if (!row.past_due_at) continue
+    await enqueueOwnerBillingEmail({
       organizationId: row.organization_id,
-      template: "trial_ending",
-      recipient: profile.email,
-      locale: organization?.default_language === "en" ? "en" : "fr",
-      idempotencyKey: `trial_ending:${row.organization_id}:${row.trial_end.slice(0, 10)}`,
-      payload: { organizationName: organization?.name ?? "WOLOYEM Score", date: row.trial_end.slice(0, 10) },
+      template: "grace_ending",
+      idempotencyKey: `grace_ending:${row.organization_id}:${row.past_due_at.slice(0, 10)}`,
     })
   }
 }

@@ -5,20 +5,20 @@ import type { AdminReport, ParticipantReport } from "./dto"
 export type InternalDetails = Pick<AdminReport, "leadStatus" | "temperature" | "quality" | "source" | "campaign" | "email" | "phone" | "answers" | "notes">
 
 const styles = StyleSheet.create({
-  page: { padding: 48, backgroundColor: "#F7F4EE", color: "#16324F", fontFamily: "Helvetica" },
-  brand: { fontSize: 11, letterSpacing: 2, color: "#8A7340" },
+  page: { padding: 48, backgroundColor: "#F7F4EE", color: "#071039", fontFamily: "Helvetica" },
+  brand: { fontSize: 11, letterSpacing: 2, color: "#1A3BB0" },
   title: { fontSize: 26, marginTop: 16, fontFamily: "Helvetica-Bold" },
   score: { fontSize: 42, marginTop: 18 },
-  badge: { marginTop: 10, alignSelf: "flex-start", backgroundColor: "#16324F", color: "#F7F4EE", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, fontSize: 11 },
+  badge: { marginTop: 10, alignSelf: "flex-start", backgroundColor: "#071039", color: "#F7F4EE", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, fontSize: 11 },
   body: { fontSize: 12, lineHeight: 1.5, marginTop: 12, color: "#3D4D61" },
   heading: { fontSize: 16, marginTop: 8, marginBottom: 8, fontFamily: "Helvetica-Bold" },
   row: { marginBottom: 8 },
   label: { fontSize: 11, marginBottom: 3 },
   track: { height: 8, backgroundColor: "#E6E0D4", borderRadius: 4 },
-  bar: { height: 8, backgroundColor: "#16324F", borderRadius: 4 },
+  bar: { height: 8, backgroundColor: "#071039", borderRadius: 4 },
   item: { fontSize: 12, marginBottom: 6, color: "#3D4D61" },
   footer: { marginTop: 24, fontSize: 10, color: "#5E6D7E" },
-  internal: { marginTop: 8, fontSize: 12, color: "#8A7340" },
+  internal: { marginTop: 8, fontSize: 12, color: "#1A3BB0" },
 })
 
 export function ReportDocument({ report, internal = false, details = null }: { report: ParticipantReport; internal?: boolean; details?: InternalDetails | null }) {

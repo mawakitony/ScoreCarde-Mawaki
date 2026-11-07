@@ -2,6 +2,14 @@
 
 import Link from "next/link"
 import type { BuilderBenefit, BuilderTestimonial } from "@/types/builder"
+import type { LandingThemeId, ThemeStatCard } from "@/lib/scorecard-themes/types"
+import { DigitalExperienceLanding } from "@/components/assessment/themes/digital-experience"
+import { ExpressDeliveryLanding } from "@/components/assessment/themes/express-delivery"
+import { AnalyticsCloudLanding } from "@/components/assessment/themes/analytics-cloud"
+import { BusinessGrowthLanding } from "@/components/assessment/themes/business-growth"
+import { WorkflowMinimalLanding } from "@/components/assessment/themes/workflow-minimal"
+import { AiCopilotLanding } from "@/components/assessment/themes/ai-copilot"
+import { FintechElegantLanding } from "@/components/assessment/themes/fintech-elegant"
 
 export type LandingContent = {
   eyebrow: string
@@ -24,9 +32,63 @@ export type LandingContent = {
   questionCount: number
   previewBanner?: boolean
   poweredBy?: boolean
+  landingTheme?: LandingThemeId
+  highlightText?: string
+  secondaryCtaLabel?: string
+  trustLabel?: string
+  backgroundColor?: string
+  accentColor?: string
+  demoStats?: ThemeStatCard[]
 }
 
 export function LandingView({
+  content,
+  ctaHref,
+  onStart,
+  cta,
+}: {
+  content: LandingContent
+  ctaHref?: string
+  onStart?: () => void
+  cta?: React.ReactNode
+}) {
+  const theme = content.landingTheme ?? "classic"
+  const enriched = {
+    ...content,
+    highlightText: content.highlightText ?? "",
+    secondaryCtaLabel: content.secondaryCtaLabel ?? "",
+    trustLabel: content.trustLabel ?? "",
+    backgroundColor: content.backgroundColor ?? "",
+    accentColor: content.accentColor ?? "",
+    demoStats: content.demoStats ?? [],
+  }
+
+  if (theme === "digital-experience") {
+    return <DigitalExperienceLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+  }
+  if (theme === "express-delivery") {
+    return <ExpressDeliveryLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+  }
+  if (theme === "analytics-cloud") {
+    return <AnalyticsCloudLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+  }
+  if (theme === "business-growth") {
+    return <BusinessGrowthLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+  }
+  if (theme === "workflow-minimal") {
+    return <WorkflowMinimalLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+  }
+  if (theme === "ai-copilot") {
+    return <AiCopilotLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+  }
+  if (theme === "fintech-elegant") {
+    return <FintechElegantLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+  }
+
+  return <ClassicLanding content={enriched} ctaHref={ctaHref} onStart={onStart} cta={cta} />
+}
+
+function ClassicLanding({
   content,
   ctaHref,
   onStart,
@@ -63,12 +125,12 @@ export function LandingView({
         {content.description ? <p className="mt-4 max-w-xl text-[#3d4d61]">{content.description}</p> : null}
         {content.heroImageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={content.heroImageUrl} alt="" className="mt-6 aspect-[16/8] w-full rounded-2xl object-cover" />
+          <img src={content.heroImageUrl} alt="" className="mt-6 aspect-[16/8] w-full rounded-[var(--radius-panel)] object-cover" />
         ) : null}
         {content.benefits.length > 0 ? (
           <ul className="mt-8 grid gap-4 sm:grid-cols-3">
             {content.benefits.map((benefit) => (
-              <li key={benefit.title} className="rounded-2xl bg-white/70 p-4">
+              <li key={benefit.title} className="rounded-[var(--radius-panel)] bg-white/70 p-4">
                 <p className="font-medium">{benefit.title}</p>
                 {benefit.description ? <p className="mt-1 text-sm text-[#3d4d61]">{benefit.description}</p> : null}
               </li>
@@ -85,7 +147,7 @@ export function LandingView({
           <button
             type="button"
             onClick={onStart}
-            className="mt-8 inline-flex h-12 items-center justify-center rounded-xl px-6 text-base text-white"
+            className="mt-8 inline-flex h-12 items-center justify-center rounded-[var(--radius-control)] px-6 text-base text-white"
             style={{ background: content.primaryColor }}
           >
             {content.ctaLabel || "Commencer"}
@@ -93,7 +155,7 @@ export function LandingView({
         ) : (
           <Link
             href={ctaHref || "#"}
-            className="mt-8 inline-flex h-12 items-center justify-center rounded-xl px-6 text-base text-white"
+            className="mt-8 inline-flex h-12 items-center justify-center rounded-[var(--radius-control)] px-6 text-base text-white"
             style={{ background: content.primaryColor }}
           >
             {content.ctaLabel || "Commencer"}
@@ -111,7 +173,7 @@ export function LandingView({
         {content.showPrivacy && content.privacyText ? (
           <p className="mt-8 max-w-xl text-sm text-[#5e6d7e]">{content.privacyText}</p>
         ) : null}
-        {content.poweredBy !== false ? <p className="mt-8 text-xs tracking-wide text-[#8a7340] uppercase">Powered by WOLOYEM Score</p> : null}
+        {content.poweredBy !== false ? <p className="mt-8 text-xs tracking-wide text-[#1A3BB0] uppercase">Powered by WOLOYEM Score</p> : null}
       </div>
     </div>
   )

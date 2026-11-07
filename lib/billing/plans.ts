@@ -71,7 +71,8 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   starter: {
     id: "starter",
     name: "Starter",
-    monthlyPrice: null,
+    /** Catalogue commercial : 10 USD / mois / organisation (confirmé au Checkout Stripe). */
+    monthlyPrice: 10,
     yearlyPrice: null,
     selfServe: true,
     public: true,

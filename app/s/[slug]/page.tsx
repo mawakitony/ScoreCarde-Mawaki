@@ -11,7 +11,7 @@ import { headers } from "next/headers"
 import { canonicalUrl, isPlatformHost } from "@/lib/billing/domains"
 import { getAppUrl } from "@/lib/env"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { parseBenefits, parseTestimonial } from "@/lib/scorecard/content"
+import { parseBenefits, parseLandingMeta, parseTestimonial } from "@/lib/scorecard/content"
 
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ preview?: string }> }
 
@@ -67,8 +67,13 @@ export default async function PublicScorecardPage({ params, searchParams }: Prop
   if (entry.access === "paused") {
     return (
       <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-5 py-16">
-        <p className="text-sm tracking-[0.18em] text-[#8a7340] uppercase">WOLOYEM</p>
-        <h1 className="font-display mt-4 text-4xl">Cette évaluation est momentanément indisponible.</h1>
+        <p className="text-[12px] font-semibold tracking-[0.18em] text-[#1A3BB0] uppercase">WOLOYEM</p>
+        <h1 className="font-display mt-4 text-3xl leading-tight sm:text-4xl">
+          Cette évaluation est momentanément indisponible.
+        </h1>
+        <p className="mt-4 text-[15px] leading-relaxed text-[#5e6d7e]">
+          Revenez plus tard ou contactez l&apos;organisateur si vous pensez qu&apos;il s&apos;agit d&apos;une erreur.
+        </p>
       </main>
     )
   }
@@ -117,6 +122,18 @@ export default async function PublicScorecardPage({ params, searchParams }: Prop
         estimatedMinutes: scorecard.estimated_minutes,
         questionCount: scorecard.questionCount,
         previewBanner: entry.access !== "published",
+        ...(() => {
+          const meta = parseLandingMeta(page?.testimonial ?? null)
+          return {
+            landingTheme: meta.landingTheme,
+            highlightText: meta.highlightText,
+            secondaryCtaLabel: meta.secondaryCtaLabel,
+            trustLabel: meta.trustLabel,
+            backgroundColor: meta.backgroundColor,
+            accentColor: meta.accentColor || brand.primaryColor,
+            demoStats: meta.demoStats,
+          }
+        })(),
       }}
       cta={
         entry.access === "published" ? (

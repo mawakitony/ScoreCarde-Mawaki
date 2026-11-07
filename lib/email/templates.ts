@@ -1,11 +1,33 @@
 import { expirySentence } from "@/lib/auth/first-access"
 import { inviteRoleLabel } from "@/lib/auth/invitation-flow"
 
-export type EmailTemplate = "organization_invitation" | "first_access" | "trial_ending" | "payment_failed" | "report_ready" | "support_notice"
+export type EmailTemplate =
+  | "organization_invitation"
+  | "first_access"
+  | "trial_ending"
+  | "trial_ending_j7"
+  | "trial_ending_j3"
+  | "trial_ending_j1"
+  | "trial_ending_j0"
+  | "payment_failed"
+  | "payment_succeeded"
+  | "grace_started"
+  | "grace_ending"
+  | "subscription_canceled"
+  | "renewal_confirmed"
+  | "report_ready"
+  | "support_notice"
 
 export function renderEmail(input: { template: EmailTemplate; locale: string; payload: Record<string, string> }) {
   const english = input.locale === "en"
   const name = input.payload.organizationName || "WOLOYEM Score"
+  const billing = input.payload.billingUrl || ""
+  const billingLine = billing
+    ? english
+      ? `\n\nManage billing securely: ${billing}`
+      : `\n\nGérer la facturation : ${billing}`
+    : ""
+
   if (input.template === "organization_invitation") {
     const inviter = input.payload.inviterName?.trim()
     const role = inviteRoleLabel(input.payload.role)
@@ -39,16 +61,85 @@ export function renderEmail(input: { template: EmailTemplate; locale: string; pa
         : `Bonjour,\n\nVous avez été ajouté à ${name} sur WOLOYEM Score.\nVotre rôle : ${role}\nVotre code de première connexion :\n${input.payload.accessCode}\n\nCréer mon accès : ${link}\n\n${delay}\n\nAccéder à WOLOYEM Score : ${link}`,
     }
   }
-  if (input.template === "trial_ending") {
+
+  if (input.template === "trial_ending" || input.template === "trial_ending_j3") {
     return {
-      subject: english ? "Your trial ends soon" : "Votre essai se termine bientôt",
-      text: english ? `The trial for ${name} ends on ${input.payload.date}.` : `L'essai de ${name} se termine le ${input.payload.date}.`,
+      subject: english ? "Your trial ends in 3 days" : "Votre essai se termine dans 3 jours",
+      text: english
+        ? `The trial for ${name} ends on ${input.payload.date}.${billingLine}`
+        : `L'essai de ${name} se termine le ${input.payload.date}.${billingLine}`,
+    }
+  }
+  if (input.template === "trial_ending_j7") {
+    return {
+      subject: english ? "Your trial ends in 7 days" : "Votre essai se termine dans 7 jours",
+      text: english
+        ? `Reminder: the trial for ${name} ends on ${input.payload.date}.${billingLine}`
+        : `Rappel : l'essai de ${name} se termine le ${input.payload.date}.${billingLine}`,
+    }
+  }
+  if (input.template === "trial_ending_j1") {
+    return {
+      subject: english ? "Your trial ends tomorrow" : "Votre essai se termine demain",
+      text: english
+        ? `The trial for ${name} ends tomorrow (${input.payload.date}).${billingLine}`
+        : `L'essai de ${name} se termine demain (${input.payload.date}).${billingLine}`,
+    }
+  }
+  if (input.template === "trial_ending_j0") {
+    return {
+      subject: english ? "Your trial ends today" : "Votre essai se termine aujourd'hui",
+      text: english
+        ? `The trial for ${name} ends today (${input.payload.date}).${billingLine}`
+        : `L'essai de ${name} se termine aujourd'hui (${input.payload.date}).${billingLine}`,
     }
   }
   if (input.template === "payment_failed") {
     return {
       subject: english ? "Payment failed" : "Paiement échoué",
-      text: english ? `The latest payment for ${name} did not succeed.` : `Le dernier paiement de ${name} n'a pas abouti.`,
+      text: english
+        ? `The latest payment for ${name} did not succeed. A grace period may apply.${billingLine}`
+        : `Le dernier paiement de ${name} n'a pas abouti. Une période de grâce peut s'appliquer.${billingLine}`,
+    }
+  }
+  if (input.template === "payment_succeeded") {
+    return {
+      subject: english ? "Payment confirmed" : "Paiement confirmé",
+      text: english
+        ? `Payment for ${name} was confirmed by Stripe.${billingLine}`
+        : `Le paiement de ${name} a été confirmé par Stripe.${billingLine}`,
+    }
+  }
+  if (input.template === "grace_started") {
+    return {
+      subject: english ? "Grace period started" : "Période de grâce démarrée",
+      text: english
+        ? `A grace period has started for ${name} after a payment issue.${billingLine}`
+        : `Une période de grâce a démarré pour ${name} après un incident de paiement.${billingLine}`,
+    }
+  }
+  if (input.template === "grace_ending") {
+    return {
+      subject: english ? "Grace period ending" : "Fin de période de grâce",
+      text: english
+        ? `The grace period for ${name} is ending. Update your payment method to keep access.${billingLine}`
+        : `La période de grâce de ${name} se termine. Mettez à jour votre moyen de paiement pour conserver l'accès.${billingLine}`,
+    }
+  }
+  if (input.template === "subscription_canceled") {
+    return {
+      subject: english ? "Subscription canceled" : "Abonnement annulé",
+      text: english
+        ? `The subscription for ${name} has been canceled.${billingLine}`
+        : `L'abonnement de ${name} a été annulé.${billingLine}`,
+    }
+  }
+  if (input.template === "renewal_confirmed") {
+    return {
+      subject: english ? "Renewal confirmed" : "Renouvellement confirmé",
+      text: english
+        ? `The subscription renewal for ${name} was confirmed.${billingLine}`
+        : `Le renouvellement de l'abonnement de ${name} a été confirmé.${billingLine}`,
     }
   }
   if (input.template === "report_ready") {

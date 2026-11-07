@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { IntegrationsPanel } from "@/components/integrations/integrations-panel"
 import { can } from "@/lib/auth/permissions"
 import { canEdit, requireUser } from "@/lib/auth/session"
@@ -9,6 +8,8 @@ import type { Json } from "@/types/database"
 export const dynamic = "force-dynamic"
 export const metadata = { title: "Intégrations" }
 
+const panel = "ws-panel p-5 md:p-6"
+
 function record(value: Json) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {}
   return value
@@ -18,7 +19,9 @@ export default async function IntegrationsPage() {
   await requireUser()
   const membership = await ensureMembership()
   if (!membership) return null
-  if (!can({ role: membership.role }, "integration.manage")) return <p>Permission refusée.</p>
+  if (!can({ role: membership.role }, "integration.manage")) {
+    return <p className={`${panel} text-sm text-muted-foreground`}>Permission refusée.</p>
+  }
   const supabase = await createClient()
   const [integrations, deliveries, rules, keys] = await Promise.all([
     supabase.from("integrations").select("id, provider, name, status, config").eq("organization_id", membership.organization.id).order("created_at", { ascending: false }),
@@ -29,13 +32,13 @@ export default async function IntegrationsPage() {
   const missing = integrations.error ?? deliveries.error ?? rules.error ?? keys.error
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <Link href="/dashboard/settings" className="text-sm text-muted-foreground">Settings</Link>
-        <h1 className="font-display text-4xl">Intégrations</h1>
-      </div>
+    <div className="space-y-4">
+      <section className={panel}>
+        <h2 className="text-base font-semibold text-foreground">Intégrations</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Webhooks, automatisations et clés API de l&apos;organisation.</p>
+      </section>
       {missing ? (
-        <p className="rounded-2xl border bg-card px-5 py-4 text-sm">La migration des intégrations n&apos;est pas encore appliquée.</p>
+        <p className={`${panel} text-sm text-muted-foreground`}>La migration des intégrations n&apos;est pas encore appliquée.</p>
       ) : (
         <IntegrationsPanel
           canEdit={canEdit(membership.role)}

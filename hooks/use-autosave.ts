@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { useSaveReporter } from "@/components/scorecard-builder/save-status"
+import { settleAutosave } from "@/lib/builder/autosave-settle"
 import type { SaveState } from "@/types/builder"
 
 type SaveResult = { error?: string; quiet?: boolean }
@@ -45,12 +46,14 @@ export function useAutosave<T>(value: T, save: (value: T) => Promise<SaveResult>
     }
 
     dirty.current = true
-    setState((current) => ({ ...current, status: "saving" }))
+    // Mark saving only when the debounced request actually starts — avoids a stuck
+    // "Enregistrement…" if the timer is cleared before a hang/reject is handled.
     const timer = window.setTimeout(() => {
-      void saveRef.current(valueRef.current).then((result) => {
+      setState((current) => ({ ...current, status: "saving" }))
+      void settleAutosave(() => saveRef.current(valueRef.current)).then((settled) => {
         dirty.current = false
-        if (result.error) {
-          if (!result.quiet) toast.error(result.error)
+        if (!settled.ok) {
+          if (!settled.quiet) toast.error(settled.error ?? "Impossible d'enregistrer. Réessayez.")
           setState((current) => ({ ...current, status: "error" }))
           return
         }

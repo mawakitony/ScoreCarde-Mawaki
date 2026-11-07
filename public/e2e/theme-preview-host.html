@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>E2E theme-preview host</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #e8ecf1;
+      }
+      #stage {
+        display: flex;
+        justify-content: center;
+        align-items: stretch;
+        height: 100%;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      #preview {
+        display: block;
+        border: 0;
+        background: #fff;
+        width: 100%;
+        height: 100%;
+      }
+      body[data-device="mobile"] #stage {
+        padding: 24px;
+      }
+      body[data-device="mobile"] #preview {
+        width: 390px;
+        height: 780px;
+        border-radius: 28px;
+        border: 1px solid #d0d5dd;
+      }
+    </style>
+  </head>
+  <body data-device="desktop">
+    <div id="stage">
+      <iframe
+        id="preview"
+        title="theme-preview"
+        src="/theme-preview/digital-experience"
+      ></iframe>
+    </div>
+    <script>
+      const params = new URLSearchParams(location.search)
+      const theme = params.get("theme") || "digital-experience"
+      const device = params.get("device") || "desktop"
+      document.body.dataset.device = device
+      document.getElementById("preview").src = "/theme-preview/" + encodeURIComponent(theme)
+    </script>
+  </body>
+</html>

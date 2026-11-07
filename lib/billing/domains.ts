@@ -40,6 +40,8 @@ const PLATFORM_DEFAULTS = ["woloyem.com", "www.woloyem.com", "score.woloyem.com"
 export function isPlatformHost(host: string, allowlist = platformAllowlist()) {
   const hostname = (host.split(":")[0] ?? "").toLowerCase()
   if (!hostname || hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".vercel.app")) return true
+  // Local network / loopback IPs (e.g. next dev "Network" URL) are never custom domains.
+  if (PRIVATE_HOST.test(hostname)) return true
   return allowlist.includes(hostname)
 }
 

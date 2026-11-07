@@ -12,7 +12,7 @@ export const faqChapter: Chapter = {
       title: "Comment créer ma première scorecard ?",
       keywords: ["créer", "première"],
       blocks: [
-        { type: "p", text: "Scorecards, Create Scorecard, puis le builder. Ou un modèle, Créer à partir de ce modèle. Suivez ensuite le chapitre Créer ma première scorecard." },
+        { type: "p", text: "Scorecards, Nouvelle scorecard, puis le builder. Ou un modèle, Créer à partir de ce modèle. Suivez ensuite le chapitre Créer ma première scorecard." },
       ],
     },
     {
@@ -28,7 +28,7 @@ export const faqChapter: Chapter = {
       title: "Comment tester avant de publier ?",
       keywords: ["aperçu", "preview"],
       blocks: [
-        { type: "p", text: "Utilisez Aperçu dans le builder, ou Preview dans le menu de la liste. Ce n'est pas le lien à envoyer. Le testeur de résultat, à l'étape Résultats, montre la plage sans publier." },
+        { type: "p", text: "Utilisez Aperçu dans le builder, ou Aperçu dans le menu de la liste. Ce n'est pas le lien à envoyer. Le testeur de résultat, à l'étape Résultats, montre la plage sans publier." },
       ],
     },
     {

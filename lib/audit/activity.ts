@@ -2,7 +2,19 @@ import { can } from "@/lib/auth/permissions"
 
 const ROLES = new Set(["owner", "admin", "editor", "analyst", "viewer", "member"])
 const PLANS = new Set(["free", "starter", "pro", "business", "enterprise", "internal"])
-const ALLOWED = new Set(["role", "old_role", "new_role", "plan", "status", "slug", "scorecard_name"])
+const ALLOWED = new Set([
+  "role",
+  "old_role",
+  "new_role",
+  "plan",
+  "status",
+  "slug",
+  "scorecard_name",
+  "tool",
+  "resource_type",
+  "resource_id",
+  "affected_count",
+])
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
@@ -40,6 +52,7 @@ export const ACTIVITY_ACTIONS = [
   "domain.checked",
   "entitlement.updated",
   "job.retried",
+  "ai.action_executed",
 ] as const
 
 export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number]
@@ -71,6 +84,7 @@ const ACTION_LABELS: Record<string, string> = {
   "domain.checked": "a vérifié un domaine",
   "entitlement.updated": "a modifié un droit d'accès",
   "job.retried": "a relancé un traitement",
+  "ai.action_executed": "a exécuté une action via l'Assistant IA",
 }
 
 export function canViewActivity(role: string) {
@@ -98,6 +112,10 @@ export function safeMetadata(metadata: unknown) {
     if (key === "plan" && !PLANS.has(text)) continue
     if (key === "status" && !/^[a-z_]{2,32}$/.test(text)) continue
     if (key === "slug" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(text)) continue
+    if (key === "tool" && !/^[a-z_]{2,64}$/.test(text)) continue
+    if (key === "resource_type" && !/^[a-z_]{2,40}$/.test(text)) continue
+    if (key === "resource_id" && !/^[0-9a-f-]{36}$/i.test(text)) continue
+    if (key === "affected_count" && !/^\d{1,4}$/.test(text)) continue
     safe[key] = text
   }
   return safe
@@ -129,9 +147,11 @@ export function presentActivity(input: {
         ? "Lead"
         : input.action.startsWith("member.")
           ? "Membre"
-          : input.action.startsWith("subscription.") || input.action === "payment.failed"
-            ? "Abonnement"
-            : "Organisation"
+          : input.action === "ai.action_executed"
+            ? safe.tool ?? "Assistant IA"
+            : input.action.startsWith("subscription.") || input.action === "payment.failed"
+              ? "Abonnement"
+              : "Organisation"
   const details = [
     input.action === "member.role_changed" && roleLabel(safe.old_role) && roleLabel(safe.new_role) ? `${roleLabel(safe.old_role)} → ${roleLabel(safe.new_role)}` : null,
     input.action === "member.invited" || input.action === "member.first_access" || input.action === "member.first_access_regenerated" ? roleLabel(safe.role) : null,

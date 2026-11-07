@@ -51,8 +51,26 @@ export const testimonialSchema = z.object({
   role: z.string().trim().max(80),
 })
 
+export const landingThemeIds = [
+  "classic",
+  "digital-experience",
+  "express-delivery",
+  "analytics-cloud",
+  "business-growth",
+  "workflow-minimal",
+  "ai-copilot",
+  "fintech-elegant",
+] as const
+
+export const demoStatSchema = z.object({
+  label: z.string().trim().min(1).max(80),
+  value: z.string().trim().min(1).max(40),
+  trend: z.string().trim().max(60).optional(),
+  tone: z.enum(["blue", "red", "purple", "orange", "green", "teal"]).optional(),
+})
+
 export const landingSchema = z.object({
-  eyebrow: z.string().trim().max(40),
+  eyebrow: z.string().trim().max(80),
   title: z.string().trim().min(2).max(160),
   subtitle: z.string().trim().max(220),
   description: z.string().trim().max(800),
@@ -65,6 +83,13 @@ export const landingSchema = z.object({
   showPrivacy: z.boolean(),
   benefits: z.array(benefitSchema).max(8),
   testimonial: testimonialSchema,
+  landingTheme: z.enum(landingThemeIds).default("classic"),
+  highlightText: z.string().trim().max(80).default(""),
+  secondaryCtaLabel: z.string().trim().max(60).default(""),
+  trustLabel: z.string().trim().max(120).default(""),
+  backgroundColor: z.union([z.literal(""), z.string().regex(/^#[0-9A-Fa-f]{6}$/)]).default(""),
+  accentColor: z.union([z.literal(""), z.string().regex(/^#[0-9A-Fa-f]{6}$/)]).default(""),
+  demoStats: z.array(demoStatSchema).max(8).default([]),
 })
 
 export const questionSettingsSchema = z.object({

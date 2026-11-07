@@ -2,6 +2,7 @@ import "server-only"
 
 import { openSecretValue } from "@/lib/auth/first-access"
 import { sendBrevoEmail } from "@/lib/email/brevo"
+import { isBrevoActivationFailure, isBrevoTransactionalConfigured } from "@/lib/email/brevo-ready"
 import { nextEmailAttempt, renderEmail, type EmailTemplate } from "@/lib/email/templates"
 import { recordHeartbeat } from "@/lib/platform/heartbeat"
 import { log } from "@/lib/observability/logger"
@@ -26,6 +27,14 @@ export async function processEmailJobs() {
       log("warn", "email.retry", { template: job.template, recipient_hash: job.recipient_hash, status: next.status })
       continue
     }
+    if (!isBrevoTransactionalConfigured()) {
+      await admin.from("email_jobs").update({
+        status: "pending",
+        next_run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        last_error: "not_configured",
+      }).eq("id", job.id)
+      continue
+    }
     const message = renderEmail({ template: job.template as EmailTemplate, locale: job.locale, payload })
     const result = await sendBrevoEmail({ to: job.recipient, subject: message.subject, text: message.text })
     if (result.configured && result.ok) {
@@ -34,11 +43,28 @@ export async function processEmailJobs() {
       sent += 1
       continue
     }
+    const failure = result.configured ? result.failure : "not_configured"
+    if (isBrevoActivationFailure(failure)) {
+      await admin.from("email_jobs").update({
+        status: "dead",
+        next_run_at: new Date().toISOString(),
+        last_error: failure,
+      }).eq("id", job.id)
+      const open = await admin.from("platform_alerts").select("id").eq("code", "brevo_smtp_inactive").is("resolved_at", null).maybeSingle()
+      if (!open.data) {
+        await admin.from("platform_alerts").insert({
+          code: "brevo_smtp_inactive",
+          message: "Brevo SMTP transactionnel non activé — e-mails bloqués.",
+        })
+      }
+      log("warn", "email.blocked_brevo_inactive", { template: job.template, recipient_hash: job.recipient_hash })
+      continue
+    }
     const next = nextEmailAttempt(job.attempts)
     await admin.from("email_jobs").update({
       status: next.status === "dead" ? "dead" : "pending",
       next_run_at: next.nextRunAt ?? new Date().toISOString(),
-      last_error: result.configured ? result.failure : "not_configured",
+      last_error: failure,
     }).eq("id", job.id)
     log("warn", "email.retry", {
       template: job.template,

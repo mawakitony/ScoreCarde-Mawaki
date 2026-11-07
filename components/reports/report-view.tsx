@@ -13,13 +13,13 @@ export function ReportView({
 }) {
   const english = report.language === "en"
   return (
-    <article className="report-sheet mx-auto w-full max-w-3xl px-5 py-10 text-[#16324F] print:max-w-none print:px-0">
+    <article className="report-sheet mx-auto w-full max-w-3xl px-5 py-10 text-[#071039] print:max-w-none print:px-0">
       <style>{`@media print { .report-actions { display: none } body { background: white } }`}</style>
-      <p className="text-sm tracking-[0.18em] text-[#8a7340] uppercase">{report.brandName}</p>
+      <p className="text-sm tracking-[0.18em] text-[#1A3BB0] uppercase">{report.brandName}</p>
       <h1 className="font-display mt-4 text-4xl">{report.scorecardTitle}</h1>
       <p className="mt-2 text-[#3d4d61]">{report.participantLabel}</p>
       <p className="font-display mt-6 text-6xl">{Math.round(report.overallPercent)} %</p>
-      {report.badge ? <p className="mt-3 inline-flex rounded-full bg-[#16324F] px-3 py-1 text-sm text-[#f7f4ee]">{report.badge}</p> : null}
+      {report.badge ? <p className="mt-3 inline-flex rounded-full bg-[#071039] px-3 py-1 text-sm text-[#f7f4ee]">{report.badge}</p> : null}
       <p className="mt-6 max-w-2xl text-[#3d4d61]">{report.summary}</p>
       {report.categories.length > 0 ? (
         <section className="mt-10">
@@ -28,7 +28,7 @@ export function ReportView({
             {report.categories.map((category) => (
               <li key={category.name}>
                 <div className="mb-1 flex justify-between text-sm"><span>{category.name}</span><span>{Math.round(category.percent)} %</span></div>
-                <div className="h-2 rounded-full bg-[#e6e0d4]"><div className="h-2 rounded-full bg-[#16324F]" style={{ width: `${Math.max(0, Math.min(100, category.percent))}%` }} /></div>
+                <div className="h-2 rounded-full bg-[#e6e0d4]"><div className="h-2 rounded-full bg-[#071039]" style={{ width: `${Math.max(0, Math.min(100, category.percent))}%` }} /></div>
               </li>
             ))}
           </ul>
@@ -53,7 +53,7 @@ export function ReportView({
         </section>
       ) : null}
       <div className="report-actions mt-8 flex flex-wrap gap-3">
-        {downloadHref ? <a className="inline-flex h-11 items-center rounded-xl bg-[#16324F] px-5 text-sm text-[#f7f4ee]" href={downloadHref}>{english ? "Download my report" : "Télécharger mon rapport"}</a> : null}
+        {downloadHref ? <a className="inline-flex h-11 items-center rounded-xl bg-[#071039] px-5 text-sm text-[#f7f4ee]" href={downloadHref}>{english ? "Download my report" : "Télécharger mon rapport"}</a> : null}
         {preparing ? <p className="text-sm text-[#5e6d7e]">{english ? "Preparing your report..." : "Préparation de votre rapport..."}</p> : null}
         {failed ? <p className="text-sm text-[#5e6d7e]">{english ? "Report generation failed" : "La génération du rapport a échoué"}</p> : null}
       </div>

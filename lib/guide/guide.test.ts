@@ -47,7 +47,7 @@ test("guide search ranks the documented destinations first", () => {
   assert.equal(first("membre").title, "Équipe et permissions")
   assert.equal(first("equipe").title, "Équipe et permissions")
   assert.equal(first("domaine").title, "Domaine personnalisé")
-  assert.equal(first("publication").title, "Draft / Published")
+  assert.equal(first("publication").title, "Brouillon / Publiée")
   assert.equal(first("scor").title, "Scoring et résultats")
   assert.equal(searchGuide(guideChapters, "q").length, 0)
   assert.equal(searchGuide(guideChapters, "zzzqq").length, 0)

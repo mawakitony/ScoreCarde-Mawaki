@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import { Settings2 } from "lucide-react"
 import { saveSetup } from "@/actions/builder"
 import { AssetField } from "@/components/scorecard-builder/asset-field"
 import { AreaField, Field, TextField } from "@/components/scorecard-builder/editor-fields"
@@ -9,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAutosave } from "@/hooks/use-autosave"
 import { SCORECARD_CATEGORIES, STATUS_LABELS } from "@/lib/constants"
 import { slugify } from "@/lib/format"
+import { WS_ICON_CHIP } from "@/lib/ui/workspace-surface"
+import { cn } from "@/lib/utils"
 import { setupSchema, type SetupInput } from "@/lib/validators/builder"
 import type { Scorecard } from "@/types/database"
 
@@ -16,11 +19,13 @@ export function SetupStep({
   scorecard,
   publicDescription,
   organizationId,
+  revision = 0,
   onChange,
 }: {
   scorecard: Scorecard
   publicDescription: string
   organizationId: string
+  revision?: number
   onChange: (value: SetupInput) => void
 }) {
   const [slugLocked, setSlugLocked] = useState(true)
@@ -43,7 +48,7 @@ export function SetupStep({
     const parsed = setupSchema.safeParse(current)
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides.", quiet: true }
     return saveSetup(scorecard.id, parsed.data)
-  })
+  }, revision)
 
   const categories = useMemo(() => {
     const known = SCORECARD_CATEGORIES as readonly string[]
@@ -57,9 +62,16 @@ export function SetupStep({
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="font-display text-3xl">Identité</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Identité, langue et adresse publique de la scorecard.</p>
+      <div className="flex items-start gap-3 border-b border-border pb-4">
+        <span className={cn(WS_ICON_CHIP, "size-10 rounded-2xl")}>
+          <Settings2 className="size-5" aria-hidden />
+        </span>
+        <div>
+          <h2 className="text-[1.2rem] font-semibold tracking-tight text-foreground">Identité</h2>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Identité, langue et adresse publique de la scorecard.
+          </p>
+        </div>
       </div>
       <div className="grid gap-5 md:grid-cols-2">
         <TextField
@@ -185,7 +197,7 @@ function ColorField({
       <div className="flex gap-2">
         <input
           type="color"
-          value={/^#[0-9A-Fa-f]{6}$/.test(value) ? value : "#16324F"}
+          value={/^#[0-9A-Fa-f]{6}$/.test(value) ? value : "#071039"}
           onChange={(event) => onChange(event.target.value)}
           className="size-10 rounded-lg border bg-card"
           aria-label={label}

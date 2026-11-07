@@ -75,6 +75,52 @@ test("stripe events are idempotent and an invalid signature is rejected", () => 
   assert.throws(() => stripe.webhooks.constructEvent(payload, header, "whsec_other"))
 })
 
+test("out-of-order Checkout webhooks still unlock after paid session", () => {
+  const trialing: BillingSnapshot = {
+    ...base,
+    status: "trialing",
+    trialEnd: "2026-09-01T00:00:00.000Z",
+    customerId: null,
+    subscriptionId: null,
+  }
+  const afterCheckout = applyStripeEvent(trialing, {
+    id: "evt_checkout",
+    type: "checkout.session.completed",
+    organizationId: "org",
+    customerId: "cus_1",
+    subscriptionId: "sub_1",
+  })
+  assert.equal(afterCheckout.status, "active")
+  assert.equal(afterCheckout.subscriptionId, "sub_1")
+  const raced = applyStripeEvent(afterCheckout, {
+    id: "evt_sub",
+    type: "customer.subscription.created",
+    organizationId: "org",
+    customerId: "cus_1",
+    subscriptionId: "sub_1",
+    stripeStatus: "active",
+    priceId: "price_starter",
+    cancelAtPeriodEnd: false,
+    periodStart: base.currentPeriodStart,
+    periodEnd: base.currentPeriodEnd,
+    trialEnd: null,
+  })
+  assert.equal(raced.status, "active")
+  const fromActiveViaCheckout = applyStripeEvent(
+    { ...raced, status: "active" },
+    {
+      id: "evt_checkout_late",
+      type: "checkout.session.completed",
+      organizationId: "org",
+      customerId: "cus_1",
+      subscriptionId: "sub_1",
+    },
+  )
+  assert.equal(fromActiveViaCheckout.status, "active")
+  const paidWhileTrialing = applyStripeEvent(trialing, { id: "evt_paid", type: "invoice.paid", organizationId: "org" })
+  assert.equal(paidWhileTrialing.status, "active")
+})
+
 test("upgrade, downgrade, cancel and past due follow the webhook", () => {
   process.env.STRIPE_PRICE_PRO_MONTHLY = "price_pro"
   process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_starter"

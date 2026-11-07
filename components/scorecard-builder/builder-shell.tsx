@@ -29,20 +29,29 @@ export function BuilderShell({
   const [bundle, setBundle] = useState(initial)
   const [synced, setSynced] = useState(initial)
   const [revision, setRevision] = useState(0)
+  const [step, setStep] = useState<BuilderStepId>(initialStep)
+  const [stepSource, setStepSource] = useState(initialStep)
+  const [save, setSave] = useState<SaveState>({ status: "idle", savedAt: null })
+  const [mode, setMode] = useState<"simple" | "advanced">("simple")
+
+  // Adjust local state when the server bundle identity changes (React-recommended render-time sync).
   if (synced !== initial) {
-    const syncing = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("sync")
     setSynced(initial)
+    const syncing = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("sync")
     if (syncing) {
       setBundle(initial)
       setRevision((current) => current + 1)
-      const url = new URL(window.location.href)
-      url.searchParams.delete("sync")
-      window.history.replaceState(null, "", `${url.pathname}${url.search}`)
+      queueMicrotask(() => {
+        const url = new URL(window.location.href)
+        url.searchParams.delete("sync")
+        window.history.replaceState(null, "", `${url.pathname}${url.search}`)
+      })
     }
   }
-  const [step, setStep] = useState<BuilderStepId>(initialStep)
-  const [save, setSave] = useState<SaveState>({ status: "idle", savedAt: null })
-  const [mode, setMode] = useState<"simple" | "advanced">("simple")
+  if (stepSource !== initialStep) {
+    setStepSource(initialStep)
+    setStep(initialStep)
+  }
 
   function changeStep(next: BuilderStepId) {
     setStep(next)
@@ -90,6 +99,13 @@ export function BuilderShell({
         showPrivacy: value.showPrivacy,
         benefits: value.benefits,
         testimonial: value.testimonial,
+        landingTheme: value.landingTheme,
+        highlightText: value.highlightText,
+        secondaryCtaLabel: value.secondaryCtaLabel,
+        trustLabel: value.trustLabel,
+        backgroundColor: value.backgroundColor,
+        accentColor: value.accentColor,
+        demoStats: value.demoStats,
       },
     }))
   }
@@ -98,7 +114,7 @@ export function BuilderShell({
 
   return (
     <SaveReporterProvider report={setSave}>
-      <div className="space-y-4">
+      <div className="-mx-4 -my-5 flex min-h-[calc(100dvh-3.75rem)] flex-col bg-[color:var(--surface)] md:-mx-6 md:-my-6">
         <BuilderHeader
           name={bundle.scorecard.name}
           status={bundle.scorecard.status}
@@ -113,25 +129,32 @@ export function BuilderShell({
             changeStep(next)
           }}
         />
-        <div className="grid min-w-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 gap-3 p-3 lg:grid-cols-[240px_minmax(0,1fr)]">
           <BuilderSidebar step={step} mode={mode} onMode={setMode} onChange={changeStep} />
-          <section className="min-w-0 rounded-3xl border bg-card p-4 md:p-6">
+          <section
+            key={step}
+            className="ws-panel ws-enter min-h-0 min-w-0 overflow-y-auto p-4 md:p-6"
+            aria-label="Éditeur du builder"
+          >
             {step === "setup" ? (
               <SetupStep
-                key={bundle.scorecard.id}
+                key={`${bundle.scorecard.id}-setup-${revision}`}
                 scorecard={bundle.scorecard}
                 publicDescription={bundle.page.description}
                 organizationId={organizationId}
+                revision={revision}
                 onChange={applySetup}
               />
             ) : null}
             {step === "landing" ? (
               <LandingStep
+                key={`${bundle.scorecard.id}-landing-${revision}`}
                 page={bundle.page}
                 privacyText={bundle.scorecard.privacy_text ?? ""}
                 organizationId={organizationId}
                 scorecardId={bundle.scorecard.id}
                 preview={preview}
+                revision={revision}
                 onChange={applyLanding}
               />
             ) : null}
@@ -202,8 +225,10 @@ export function BuilderShell({
             ) : null}
             {step === "lead" ? (
               <LeadStep
+                key={`${bundle.scorecard.id}-lead-${revision}`}
                 scorecardId={bundle.scorecard.id}
                 leadForm={bundle.leadForm}
+                revision={revision}
                 onChange={(leadForm) => setBundle((current) => ({ ...current, leadForm }))}
               />
             ) : null}
@@ -249,6 +274,12 @@ function toLandingContent(bundle: BuilderBundle): LandingContent {
     estimatedMinutes: bundle.scorecard.estimated_minutes,
     questionCount: bundle.questions.length,
     previewBanner: bundle.scorecard.status !== "published",
+    landingTheme: bundle.page.landingTheme,
+    highlightText: bundle.page.highlightText,
+    secondaryCtaLabel: bundle.page.secondaryCtaLabel,
+    trustLabel: bundle.page.trustLabel,
+    backgroundColor: bundle.page.backgroundColor,
+    accentColor: bundle.page.accentColor || bundle.scorecard.primary_color,
+    demoStats: bundle.page.demoStats,
   }
 }
-

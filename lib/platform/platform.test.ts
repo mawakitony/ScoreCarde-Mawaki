@@ -2,10 +2,12 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { toCsv } from "../leads/csv.ts"
 import { credentialState, stripSecrets } from "./dto.ts"
+import { platformNavForRole } from "./nav.ts"
 import { canPlatform, canRevokePlatformAdmin, platformGate } from "./permissions.ts"
 import {
   canEditEntitlements,
   canSuspendOrganization,
+  constrainOrgIds,
   heartbeatState,
   integrationHealth,
   maskEmail,
@@ -35,8 +37,11 @@ test("platform roles keep billing, retry and admin powers separate", () => {
   assert.equal(canPlatform({ role: "support" }, "platform.billing.manage"), false)
   assert.equal(canPlatform({ role: "support" }, "platform.entitlements.manage"), false)
   assert.equal(canPlatform({ role: "finance" }, "platform.jobs.retry"), false)
+  assert.equal(canPlatform({ role: "finance" }, "platform.billing.manage"), false)
+  assert.equal(canPlatform({ role: "finance" }, "platform.billing.read"), true)
   assert.equal(canPlatform({ role: "operations" }, "platform.jobs.retry"), true)
   assert.equal(canPlatform({ role: "operations" }, "platform.billing.manage"), false)
+  assert.equal(canPlatform({ role: "super_admin" }, "platform.billing.manage"), true)
   assert.equal(platformGate({ admin: { role: "support" }, permission: "platform.support.access" }), "allowed")
 })
 
@@ -54,6 +59,18 @@ test("a support session cannot read another organization", () => {
   assert.equal(supportCanRead({ open: true, sessionOrgId: "org-a", requestedOrgId: "org-a" }), true)
   assert.equal(supportCanRead({ open: true, sessionOrgId: "org-a", requestedOrgId: "org-b" }), false)
   assert.equal(supportCanRead({ open: false, sessionOrgId: "org-a", requestedOrgId: "org-a" }), false)
+  assert.deepEqual(constrainOrgIds("org-a", null), ["org-a"])
+  assert.deepEqual(constrainOrgIds("org-a", ["org-a", "org-b"]), ["org-a"])
+  assert.deepEqual(constrainOrgIds(null, ["org-a", "org-b"]), ["org-a", "org-b"])
+})
+
+test("platform nav hides entries the role cannot open", () => {
+  const supportHrefs = platformNavForRole("support").flatMap((g) => g.items.map((i) => i.href))
+  assert.equal(supportHrefs.includes("/platform/admins"), false)
+  assert.equal(supportHrefs.includes("/platform/audit"), true)
+  const financeHrefs = platformNavForRole("finance").flatMap((g) => g.items.map((i) => i.href))
+  assert.equal(financeHrefs.includes("/platform/jobs"), false)
+  assert.equal(financeHrefs.includes("/platform/payments"), true)
 })
 
 test("WOLOYEM cannot be suspended or have entitlements rewritten", () => {

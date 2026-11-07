@@ -77,7 +77,7 @@ export function CategoriesStep({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-3xl">Catégories</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Catégories</h2>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
             Regroupez les questions, par exemple Expérience ou Formation. Les poids se règlent dans Score.
           </p>
@@ -87,7 +87,7 @@ export function CategoriesStep({
         </Button>
       </div>
       {categories.length === 0 ? (
-        <p className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">Aucune catégorie. Ajoutez la première, par exemple Expérience ou Formation.</p>
+        <p className="rounded-[var(--radius-panel)] border border-dashed border-border bg-card/50 p-8 text-sm text-muted-foreground">Aucune catégorie. Ajoutez la première, par exemple Expérience ou Formation.</p>
       ) : (
         <SortableList
           items={categories}
@@ -128,7 +128,7 @@ function CategoryCard({
   })
 
   return (
-    <article className="space-y-4 rounded-2xl border bg-card p-4">
+    <article className="space-y-4 rounded-[var(--radius-panel)] border border-border bg-card shadow-[var(--shadow-panel)] p-4">
       <div className="grid gap-4 md:grid-cols-2">
         <TextField id={`category-name-${category.id}`} label="Nom" value={category.name} onChange={(name) => onChange({ ...category, name })} />
         <TextField id={`category-icon-${category.id}`} label="Icône" value={category.icon} onChange={(icon) => onChange({ ...category, icon })} />

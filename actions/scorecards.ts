@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import { writeActivity } from "@/lib/audit/write"
 import { can } from "@/lib/auth/permissions"
 import { loadEntitlements } from "@/lib/billing/account"
+import { requireWorkspaceAccess } from "@/lib/billing/workspace-access"
 import { ensureMembership } from "@/lib/data/membership"
 import { emptyToNull, slugify } from "@/lib/format"
 import { createClient } from "@/lib/supabase/server"
@@ -12,17 +13,28 @@ import { scorecardSchema, type ScorecardFormValues } from "@/lib/validators/scor
 
 export type ActionResult = { error?: string; id?: string }
 
-async function editorContext() {
+type EditorContext =
+  | {
+      ok: true
+      membership: NonNullable<Awaited<ReturnType<typeof ensureMembership>>>
+      supabase: Awaited<ReturnType<typeof createClient>>
+      user: { id: string }
+    }
+  | { ok: false; error: string }
+
+async function editorContext(): Promise<EditorContext> {
   const membership = await ensureMembership()
   if (!membership || !can({ role: membership.role }, "scorecard.edit")) {
-    return { error: "Vous n'avez pas la permission de modifier les scorecards." as const }
+    return { ok: false, error: "Vous n'avez pas la permission de modifier les scorecards." }
   }
+  const access = await requireWorkspaceAccess(membership.organization.id)
+  if (access) return { ok: false, error: access.error }
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { error: "Session expirée." as const }
-  return { membership, supabase, user }
+  if (!user) return { ok: false, error: "Session expirée." }
+  return { ok: true, membership, supabase, user }
 }
 
 function fields(values: ScorecardFormValues) {
@@ -73,7 +85,7 @@ export async function createScorecard(values: ScorecardFormValues): Promise<Acti
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." }
 
   const context = await editorContext()
-  if ("error" in context && context.error) return { error: context.error }
+  if (!context.ok) return { error: context.error }
 
   const { supabase, user, membership } = context
   const quota = await scorecardQuota(supabase, membership.organization.id)
@@ -108,7 +120,7 @@ export async function updateScorecard(id: string, values: ScorecardFormValues): 
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." }
 
   const context = await editorContext()
-  if ("error" in context && context.error) return { error: context.error }
+  if (!context.ok) return { error: context.error }
 
   const { supabase, membership } = context
   const { error } = await supabase
@@ -127,7 +139,7 @@ export async function updateScorecard(id: string, values: ScorecardFormValues): 
 
 export async function setScorecardStatus(id: string, status: ScorecardFormValues["status"]) {
   const context = await editorContext()
-  if ("error" in context && context.error) return { error: context.error }
+  if (!context.ok) return { error: context.error }
   const { supabase, membership, user } = context
 
   const { error } = await supabase
@@ -155,7 +167,7 @@ export async function setScorecardStatus(id: string, status: ScorecardFormValues
 
 export async function deleteScorecard(id: string) {
   const context = await editorContext()
-  if ("error" in context && context.error) return { error: context.error }
+  if (!context.ok) return { error: context.error }
   const { supabase, membership } = context
 
   const { error } = await supabase
@@ -171,7 +183,7 @@ export async function deleteScorecard(id: string) {
 
 export async function duplicateScorecard(id: string) {
   const context = await editorContext()
-  if ("error" in context && context.error) return { error: context.error }
+  if (!context.ok) return { error: context.error }
   const quota = await scorecardQuota(context.supabase, context.membership.organization.id)
   if (quota) return { error: quota }
 
@@ -183,7 +195,7 @@ export async function duplicateScorecard(id: string) {
 
 export async function createScorecardFromTemplate(templateId: string) {
   const context = await editorContext()
-  if ("error" in context && context.error) return { error: context.error }
+  if (!context.ok) return { error: context.error }
   const { supabase, membership, user } = context
   const quota = await scorecardQuota(supabase, membership.organization.id)
   if (quota) return { error: quota }
@@ -239,5 +251,76 @@ export async function createScorecardFromTemplate(templateId: string) {
   await supabase.from("scorecard_lead_forms").insert({ scorecard_id: data.id })
 
   revalidatePath("/dashboard/scorecards")
+  return { id: data.id }
+}
+
+export async function createScorecardFromVisualTheme(themeId: string) {
+  const context = await editorContext()
+  if (!context.ok) return { error: context.error }
+  const { supabase, membership, user } = context
+  const quota = await scorecardQuota(supabase, membership.organization.id)
+  if (quota) return { error: quota }
+
+  const { visualThemeById } = await import("@/lib/scorecard-themes/catalog")
+  const { packTestimonialPayload } = await import("@/lib/scorecard-themes/page-meta")
+  const theme = visualThemeById(themeId)
+  if (!theme) return { error: "Modèle visuel introuvable." }
+
+  let slug = slugify(theme.id)
+  for (let index = 1; index < 20; index += 1) {
+    const candidate = index === 1 ? slug : `${slugify(theme.id)}-${index}`
+    const { data: existing } = await supabase.from("scorecards").select("id").eq("slug", candidate).maybeSingle()
+    if (!existing) {
+      slug = candidate
+      break
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("scorecards")
+    .insert({
+      organization_id: membership.organization.id,
+      name: theme.name,
+      slug,
+      description: theme.description,
+      category: theme.category,
+      language: "fr",
+      status: "draft",
+      created_by: user.id,
+      primary_color: theme.primaryColor,
+      secondary_color: theme.secondaryColor,
+      privacy_text:
+        "Cette évaluation fournit une indication préliminaire. Personnalisez ce message dans le builder.",
+    })
+    .select("id")
+    .single()
+
+  if (error || !data) return { error: mapError(error?.message ?? "") }
+
+  await supabase.from("scorecard_pages").insert({
+    scorecard_id: data.id,
+    eyebrow: theme.defaults.eyebrow || null,
+    title: `${theme.defaults.title}${theme.defaults.highlightText ? ` ${theme.defaults.highlightText}` : ""}`.trim(),
+    subtitle: theme.defaults.subtitle || null,
+    description: theme.defaults.description || null,
+    cta_text: theme.defaults.ctaLabel,
+    benefits: theme.defaults.benefits,
+    testimonial: packTestimonialPayload({
+      testimonial: { quote: "", author: "", role: "" },
+      meta: {
+        landingTheme: theme.id,
+        highlightText: theme.defaults.highlightText,
+        secondaryCtaLabel: theme.defaults.secondaryCtaLabel,
+        trustLabel: theme.defaults.trustLabel,
+        backgroundColor: theme.backgroundColor,
+        accentColor: theme.accentColor,
+        demoStats: theme.defaults.demoStats,
+      },
+    }),
+  })
+  await supabase.from("scorecard_lead_forms").insert({ scorecard_id: data.id })
+
+  revalidatePath("/dashboard/scorecards")
+  revalidatePath("/dashboard/templates")
   return { id: data.id }
 }

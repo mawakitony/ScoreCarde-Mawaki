@@ -15,6 +15,9 @@ export async function GET(request: Request) {
       const { error: bootError } = await supabase.rpc("bootstrap_membership")
       if (bootError) {
         if (await invitationKeepsSession(next)) return NextResponse.redirect(new URL(next, url.origin))
+        if (/organisation_required/i.test(bootError.message)) {
+          return NextResponse.redirect(new URL("/onboarding", url.origin))
+        }
         await supabase.auth.signOut()
         return NextResponse.redirect(new URL("/login?error=invite", url.origin))
       }

@@ -38,9 +38,15 @@ export function contentSecurityPolicy() {
     "img-src 'self' data: blob: https://*.supabase.co",
     "font-src 'self' data:",
     "connect-src 'self' https://*.supabase.co https://api.stripe.com",
-    "frame-src https://js.stripe.com https://hooks.stripe.com",
+    // 'self' allows same-origin gallery theme-preview iframes; third-party frames stay Stripe-only.
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
   ].join("; ")
+}
+
+/** CSP for catalog theme demos embeddable only by this origin (dashboard gallery). */
+export function themePreviewContentSecurityPolicy() {
+  return contentSecurityPolicy().replace("frame-ancestors 'none'", "frame-ancestors 'self'")
 }

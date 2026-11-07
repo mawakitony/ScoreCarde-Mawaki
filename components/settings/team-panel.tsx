@@ -102,38 +102,38 @@ export function TeamPanel({
     : ""
 
   return (
-    <div className="space-y-8">
-      <section className="space-y-3">
-        <h2 className="text-lg">Ajouter un membre</h2>
+    <div className="space-y-4">
+      <section className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-panel)]">
+        <h2 className="text-base font-semibold text-foreground">Ajouter un membre</h2>
         <form action={grant} className="flex flex-wrap gap-2">
-          <input name="email" type="email" required placeholder="Adresse email" aria-label="Adresse email" className="h-11 rounded-xl border px-3" />
-          <select name="role" aria-label="Rôle" className="h-11 rounded-xl border px-3" defaultValue="editor">
-            <option value="admin">Admin</option>
-            <option value="editor">Editor</option>
-            <option value="analyst">Analyst</option>
-            <option value="viewer">Viewer</option>
+          <input name="email" type="email" required placeholder="Adresse email" aria-label="Adresse email" className="h-10 rounded-xl border border-border bg-card px-3 text-sm" />
+          <select name="role" aria-label="Rôle" className="h-10 rounded-xl border border-border bg-card px-3 text-sm" defaultValue="editor">
+            <option value="admin">Administrateur</option>
+            <option value="editor">Éditeur</option>
+            <option value="analyst">Analyste</option>
+            <option value="viewer">Lecteur</option>
           </select>
-          <button className="h-11 rounded-xl bg-[#16324F] px-4 text-sm text-[#f7f4ee]" type="submit">Envoyer l&apos;accès</button>
+          <button className="h-10 rounded-full bg-[#071039] px-4 text-sm font-semibold text-white" type="submit">Envoyer l&apos;accès</button>
         </form>
       </section>
-      <section className="space-y-3">
-        <h2 className="text-lg">Invitation classique</h2>
+      <section className="space-y-3 rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-panel)]">
+        <h2 className="text-base font-semibold text-foreground">Invitation classique</h2>
         <form action={invite} className="flex flex-wrap gap-2">
-          <input name="email" type="email" required placeholder="email" className="h-11 rounded-xl border px-3" />
-          <select name="role" className="h-11 rounded-xl border px-3" defaultValue="editor">
-            <option value="admin">Admin</option>
-            <option value="editor">Editor</option>
-            <option value="analyst">Analyst</option>
-            <option value="viewer">Viewer</option>
+          <input name="email" type="email" required placeholder="Adresse email" aria-label="Adresse email" className="h-10 rounded-xl border border-border bg-card px-3 text-sm" />
+          <select name="role" aria-label="Rôle" className="h-10 rounded-xl border border-border bg-card px-3 text-sm" defaultValue="editor">
+            <option value="admin">Administrateur</option>
+            <option value="editor">Éditeur</option>
+            <option value="analyst">Analyste</option>
+            <option value="viewer">Lecteur</option>
           </select>
-          <button className="h-11 rounded-xl border px-4 text-sm" type="submit">Inviter</button>
+          <button className="h-10 rounded-full border border-border px-4 text-sm font-semibold text-foreground" type="submit">Inviter</button>
         </form>
-        {inviteSent ? <p className="text-sm">Invitation envoyée.</p> : null}
+        {inviteSent ? <p className="text-sm text-[#2E5DE6]">Invitation envoyée.</p> : null}
       </section>
       {error ? <p className="text-sm">{error}</p> : null}
       {notice ? <p className="text-sm">{notice}</p> : null}
       {invitations.length ? (
-        <ul className="divide-y rounded-3xl border bg-card">
+        <ul className="divide-y divide-border rounded-2xl border border-border bg-card shadow-[var(--shadow-panel)]">
           {invitations.map((invitation) => (
             <li key={invitation.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm">
               <span>{invitation.email}</span>
@@ -174,9 +174,9 @@ export function TeamPanel({
             <p className="text-sm">Expire dans {access.hours === 1 ? "1 heure" : `${access.hours} heures`}</p>
             <p className="text-sm break-all">{access.link}</p>
             <div className="flex flex-wrap gap-2">
-              <button className="h-11 rounded-xl bg-[#16324F] px-4 text-sm text-[#f7f4ee]" type="button" onClick={() => copy(access.code, "code")}>Copier le code</button>
+              <button className="h-11 rounded-[var(--radius-control)] bg-primary px-4 text-sm font-semibold text-primary-foreground" type="button" onClick={() => copy(access.code, "code")}>Copier le code</button>
               <button className="h-11 rounded-xl border px-4 text-sm" type="button" onClick={() => copy(message, "message")}>Copier le message</button>
-              <a className="inline-flex h-11 items-center rounded-xl border px-4 text-sm" href={whatsAppShareUrl(message)} target="_blank" rel="noopener noreferrer">Partager via WhatsApp</a>
+              <a className="inline-flex h-11 items-center rounded-[var(--radius-control)] border border-border px-4 text-sm font-semibold" href={whatsAppShareUrl(message)} target="_blank" rel="noopener noreferrer">Partager via WhatsApp</a>
               <button className="h-11 rounded-xl border px-4 text-sm" type="button" onClick={closeAccess}>Fermer</button>
             </div>
             {copied === "code" ? <p className="text-sm">Code copié.</p> : null}

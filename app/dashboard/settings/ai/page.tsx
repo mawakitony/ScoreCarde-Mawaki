@@ -6,6 +6,9 @@ import { createClient } from "@/lib/supabase/server"
 
 export const metadata = { title: "IA" }
 
+const panel = "rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-panel)] md:p-6"
+const field = "h-10 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand-500)]/25 disabled:opacity-60"
+
 export default async function AiSettingsPage() {
   await requireUser()
   const membership = await ensureMembership()
@@ -23,20 +26,34 @@ export default async function AiSettingsPage() {
   const provider = activeAiProvider()
   const editor = canEdit(membership.role)
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <h1 className="font-display text-4xl">IA</h1>
-      {provider.configured ? <p className="text-sm text-muted-foreground">Provider {provider.id}. L&apos;IA n&apos;écrit aucun score.</p> : <p className="text-sm text-muted-foreground">L&apos;analyse IA n&apos;est pas configurée.</p>}
-      <form action={async (formData) => {
-        "use server"
-        await saveOrgReportSettings({ ...current, aiMode: String(formData.get("aiMode") ?? "disabled") })
-      }} className="rounded-3xl border bg-card p-6">
-        <select name="aiMode" defaultValue={current.aiMode} aria-label="Mode IA" disabled={!editor} className="h-10 w-full rounded-xl border px-3">
-          <option value="disabled">Désactivée</option>
-          <option value="manual">Manuelle</option>
-          <option value="automatic">Automatique pour les scorecards qui l&apos;autorisent</option>
-        </select>
-        {editor ? <button type="submit" className="mt-4 h-10 rounded-xl bg-primary px-4 text-sm text-primary-foreground">Enregistrer</button> : null}
+    <section className={panel}>
+      <h2 className="text-base font-semibold text-foreground">IA</h2>
+      {provider.configured ? (
+        <p className="mt-1 text-sm text-muted-foreground">Provider {provider.id}. L&apos;IA n&apos;écrit aucun score.</p>
+      ) : (
+        <p className="mt-1 text-sm text-muted-foreground">L&apos;analyse IA n&apos;est pas configurée.</p>
+      )}
+      <form
+        action={async (formData) => {
+          "use server"
+          await saveOrgReportSettings({ ...current, aiMode: String(formData.get("aiMode") ?? "disabled") })
+        }}
+        className="mt-5 space-y-4"
+      >
+        <label className="block space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Mode IA</span>
+          <select name="aiMode" defaultValue={current.aiMode} aria-label="Mode IA" disabled={!editor} className={field}>
+            <option value="disabled">Désactivée</option>
+            <option value="manual">Manuelle</option>
+            <option value="automatic">Automatique pour les scorecards qui l&apos;autorisent</option>
+          </select>
+        </label>
+        {editor ? (
+          <button type="submit" className="h-10 rounded-xl bg-[color:var(--brand-950)] px-4 text-sm font-semibold text-white dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]">
+            Enregistrer
+          </button>
+        ) : null}
       </form>
-    </div>
+    </section>
   )
 }

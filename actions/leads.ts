@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { canEdit } from "@/lib/auth/session"
 import { getUser } from "@/lib/auth/session"
+import { requireWorkspaceAccess } from "@/lib/billing/workspace-access"
 import { ensureMembership } from "@/lib/data/membership"
 import { isLeadStatus, MAX_TAGS_PER_LEAD, NOTE_LIMIT, TAG_NAME_LIMIT } from "@/lib/leads/qualification"
 import { sameOrganization } from "@/lib/leads/qualification"
@@ -19,14 +20,25 @@ const tagSchema = z.object({
 })
 const uuid = z.string().uuid()
 
-async function editor() {
+type LeadEditor =
+  | {
+      ok: true
+      supabase: Awaited<ReturnType<typeof createClient>>
+      organizationId: string
+      userId: string
+    }
+  | { ok: false; error: string }
+
+async function editor(): Promise<LeadEditor> {
   const membership = await ensureMembership()
   const user = await getUser()
   if (!membership || !user || !canEdit(membership.role)) {
-    return { error: "Vous n'avez pas la permission de modifier ces leads." as const }
+    return { ok: false, error: "Vous n'avez pas la permission de modifier ces leads." }
   }
+  const access = await requireWorkspaceAccess(membership.organization.id)
+  if (access) return { ok: false, error: access.error }
   const supabase = await createClient()
-  return { supabase, organizationId: membership.organization.id, userId: user.id }
+  return { ok: true, supabase, organizationId: membership.organization.id, userId: user.id }
 }
 
 function refresh(leadId?: string) {
@@ -38,7 +50,7 @@ function refresh(leadId?: string) {
 export async function changeLeadStatus(leadId: string, status: string) {
   if (!uuid.safeParse(leadId).success || !isLeadStatus(status)) return { error: "Statut invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const { data, error } = await context.supabase
     .from("leads")
     .update({ status })
@@ -64,7 +76,7 @@ export async function changeLeadsStatus(ids: string[], status: string) {
   const clean = ids.filter((id) => uuid.safeParse(id).success).slice(0, 100)
   if (clean.length === 0 || !isLeadStatus(status)) return { error: "Sélection invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const { data, error } = await context.supabase
     .from("leads")
     .update({ status })
@@ -93,7 +105,7 @@ export async function addLeadNote(leadId: string, content: string) {
   const parsed = noteSchema.safeParse(content)
   if (!uuid.safeParse(leadId).success || !parsed.success) return { error: parsed.success ? "Lead invalide." : parsed.error.issues[0]?.message ?? "Note invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const { data: lead } = await context.supabase.from("leads").select("id, organization_id").eq("id", leadId).eq("organization_id", context.organizationId).is("deleted_at", null).maybeSingle()
   if (!lead || !sameOrganization(lead.organization_id, context.organizationId)) return { error: "Lead introuvable." }
   const { error } = await context.supabase.from("lead_notes").insert({
@@ -118,7 +130,7 @@ export async function createLeadTag(name: string, color: string) {
   const parsed = tagSchema.safeParse({ name, color })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Tag invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const { error } = await context.supabase.from("lead_tags").insert({
     organization_id: context.organizationId,
     name: parsed.data.name,
@@ -133,7 +145,7 @@ export async function renameLeadTag(tagId: string, name: string, color: string) 
   const parsed = tagSchema.safeParse({ name, color })
   if (!uuid.safeParse(tagId).success || !parsed.success) return { error: "Tag invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const { error } = await context.supabase.from("lead_tags").update({
     name: parsed.data.name,
     color: parsed.data.color,
@@ -146,7 +158,7 @@ export async function renameLeadTag(tagId: string, name: string, color: string) 
 export async function deleteLeadTag(tagId: string) {
   if (!uuid.safeParse(tagId).success) return { error: "Tag invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const { error } = await context.supabase.from("lead_tags").delete().eq("id", tagId).eq("organization_id", context.organizationId)
   if (error) return { error: "Le tag n'a pas pu être supprimé." }
   refresh()
@@ -163,7 +175,7 @@ async function assertTag(tagId: string, organizationId: string) {
 export async function assignLeadTag(leadId: string, tagId: string) {
   if (!uuid.safeParse(leadId).success || !uuid.safeParse(tagId).success) return { error: "Tag invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const tag = await assertTag(tagId, context.organizationId)
   const { data: lead } = await context.supabase.from("leads").select("id, organization_id").eq("id", leadId).eq("organization_id", context.organizationId).is("deleted_at", null).maybeSingle()
   if (!tag || !lead || !sameOrganization(lead.organization_id, tag.organization_id)) return { error: "Ce tag n'appartient pas à cette organisation." }
@@ -188,7 +200,7 @@ export async function assignTagToLeads(ids: string[], tagId: string) {
   const clean = [...new Set(ids.filter((id) => uuid.safeParse(id).success))].slice(0, 100)
   if (!uuid.safeParse(tagId).success || clean.length === 0) return { error: "Sélection invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const tag = await assertTag(tagId, context.organizationId)
   if (!tag) return { error: "Ce tag n'appartient pas à cette organisation." }
   const { data: leads } = await context.supabase.from("leads").select("id, organization_id").in("id", clean).eq("organization_id", context.organizationId).is("deleted_at", null)
@@ -217,7 +229,7 @@ export async function assignTagToLeads(ids: string[], tagId: string) {
 export async function removeLeadTag(leadId: string, tagId: string) {
   if (!uuid.safeParse(leadId).success || !uuid.safeParse(tagId).success) return { error: "Tag invalide." }
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const tag = await assertTag(tagId, context.organizationId)
   if (!tag) return { error: "Tag introuvable." }
   const { error } = await context.supabase.from("lead_tag_assignments").delete().eq("lead_id", leadId).eq("tag_id", tagId)

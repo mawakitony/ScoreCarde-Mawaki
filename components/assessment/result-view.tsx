@@ -36,7 +36,7 @@ export function ResultView({
 
   return (
     <section className="mx-auto w-full max-w-xl px-5 py-8" style={{ color: "#142033" }}>
-      <p className="text-sm tracking-[0.16em] text-[#8a7340] uppercase">{heading}</p>
+      <p className="text-sm tracking-[0.16em] text-[#1A3BB0] uppercase">{heading}</p>
       <p className="font-display mt-3 text-5xl">{Math.round(percentage)} %</p>
       {range?.badge ? (
         <p className="mt-3 inline-flex rounded-full px-3 py-1 text-sm text-white" style={{ background: primaryColor }}>
@@ -48,7 +48,7 @@ export function ResultView({
       {scores.length > 0 ? (
         <ul className="mt-6 space-y-2">
           {scores.map((score) => (
-            <li key={score.name} className="flex items-center justify-between rounded-xl bg-white px-4 py-3 text-sm">
+            <li key={score.name} className="flex items-center justify-between rounded-[var(--radius-control)] bg-white px-4 py-3 text-sm">
               <span>{score.name}</span>
               <span>{Math.round(score.percent)} %</span>
             </li>
@@ -59,7 +59,7 @@ export function ResultView({
       {range?.ctaLabel && href ? (
         <a
           href={href}
-          className="mt-6 inline-flex h-12 items-center justify-center rounded-xl px-6 text-white"
+          className="mt-6 inline-flex h-12 items-center justify-center rounded-[var(--radius-control)] px-6 text-white"
           style={{ background: primaryColor }}
         >
           {range.ctaLabel}

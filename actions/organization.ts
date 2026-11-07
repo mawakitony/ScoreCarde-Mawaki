@@ -18,6 +18,7 @@ import { loadEntitlements } from "@/lib/billing/account"
 import { normalizeDomain, verificationTxt } from "@/lib/billing/domains"
 import { DEFAULT_TRIAL_DAYS } from "@/lib/billing/plans"
 import { hasFeature } from "@/lib/billing/entitlements"
+import { requireWorkspaceAccess } from "@/lib/billing/workspace-access"
 import { ensureMembership } from "@/lib/data/membership"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
@@ -29,16 +30,29 @@ export async function createOrganization(formData: FormData) {
   if (!user) redirect("/login")
   const name = String(formData.get("name") ?? "").trim()
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase()
-  const useCase = String(formData.get("useCase") ?? "").trim()
+  // Secteur d'activité is stored in organizations.use_case (existing column).
+  const useCase = String(formData.get("useCase") ?? formData.get("sector") ?? "").trim()
+  const country = String(formData.get("country") ?? "").trim().slice(0, 80)
+  const logoUrl = String(formData.get("logoUrl") ?? "").trim().slice(0, 500)
   if (name.length < 2 || !slugPattern.test(slug) || slug === "woloyem") redirect("/onboarding?error=1")
+  if (logoUrl && !/^https?:\/\//i.test(logoUrl)) redirect("/onboarding?error=1")
   const supabase = await createClient()
-  const { error } = await supabase.rpc("create_organization", {
+  const { data: orgId, error } = await supabase.rpc("create_organization", {
     p_name: name,
     p_slug: slug,
     p_use_case: useCase,
     p_trial_days: DEFAULT_TRIAL_DAYS,
   })
   if (error) redirect("/onboarding?error=1")
+  if (orgId && (country || logoUrl)) {
+    await supabase
+      .from("organizations")
+      .update({
+        ...(country ? { country } : {}),
+        ...(logoUrl ? { logo_url: logoUrl } : {}),
+      })
+      .eq("id", orgId)
+  }
   redirect("/dashboard")
 }
 
@@ -52,11 +66,14 @@ async function manager() {
 export async function saveOrganization(formData: FormData) {
   const context = await manager()
   if ("error" in context) return context
+  const access = await requireWorkspaceAccess(context.membership.organization.id)
+  if (access) return { error: access.error }
   const name = String(formData.get("name") ?? "").trim()
   const slug = String(formData.get("slug") ?? "").trim().toLowerCase()
   if (name.length < 2 || !slugPattern.test(slug)) return { error: "Nom ou slug invalide." }
   if (slug === "woloyem" && context.membership.organization.slug !== "woloyem") return { error: "Slug réservé." }
   const supabase = await createClient()
+  // Renaming the organization must never reset trial_used_at / trial_end (not in this update).
   const { error } = await supabase.from("organizations").update({
     name,
     slug,
@@ -74,6 +91,8 @@ export async function saveOrganization(formData: FormData) {
 export async function inviteMember(formData: FormData) {
   const context = await manager()
   if ("error" in context) return context
+  const access = await requireWorkspaceAccess(context.membership.organization.id)
+  if (access) return { error: access.error }
   const email = String(formData.get("email") ?? "").trim().toLowerCase()
   const role = String(formData.get("role") ?? "viewer")
   if (!email.includes("@") || !["admin", "editor", "analyst", "viewer"].includes(role)) return { error: "Invitation invalide." }

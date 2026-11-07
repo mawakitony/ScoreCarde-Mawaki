@@ -16,7 +16,7 @@ export const scorecardChapter: Chapter = {
       keywords: ["créer", "modèle", "create scorecard"],
       blocks: [
         { type: "p", text: "Une scorecard est le questionnaire noté que vos visiteurs rempliront. Elle naît en brouillon." },
-        { type: "p", text: "Où cliquer : Scorecards, puis le bouton Create Scorecard. La fenêtre s'intitule Nouvelle scorecard. Le bouton final est Créer la scorecard." },
+        { type: "p", text: "Où cliquer : Scorecards, puis le bouton Nouvelle scorecard. La fenêtre porte le même titre. Le bouton final est Créer la scorecard." },
         { type: "p", text: "Autre départ : Modèles, puis Créer à partir de ce modèle. Cela crée aussi un brouillon. S'il n'y a pas encore de modèle, la page l'indique et vous renvoie vers une scorecard vide." },
         { type: "roles", roles: editors },
         { type: "callout", kind: "example", text: "Vous partez d'un modèle « Éligibilité ». Vous obtenez une scorecard brouillon à personnaliser, pas une page déjà publique." },
@@ -134,7 +134,7 @@ export const scorecardChapter: Chapter = {
       title: "Tester avec Aperçu",
       keywords: ["aperçu", "preview", "tester"],
       blocks: [
-        { type: "p", text: "Dans le builder, le bouton Aperçu ou l'étape Aperçu ouvre le questionnaire comme un membre de l'équipe. Depuis la liste, le menu de la scorecard a aussi Preview." },
+        { type: "p", text: "Dans le builder, le bouton Aperçu ou l'étape Aperçu ouvre le questionnaire comme un membre de l'équipe. Depuis la liste, le menu de la scorecard propose aussi Aperçu." },
         { type: "compare", leftTitle: "Aperçu", left: "Visible par vous, y compris sur un brouillon. Ce n'est pas l'adresse à envoyer à vos clients.", rightTitle: "Publication", right: "Rend la dernière version accessible aux visiteurs. Sans cela, ils ne voient pas vos changements." },
         { type: "callout", kind: "tip", text: "Parcourez les questions conditionnelles et le testeur de résultat avant de publier." },
       ],
@@ -150,7 +150,7 @@ export const scorecardChapter: Chapter = {
         { type: "p", text: "Pour partager : Scorecards, menu de la scorecard, Partager. La même action est sur la fiche. La fenêtre propose Copier le lien, Partager via WhatsApp, Partager par email, le QR Code et Télécharger le QR Code. Partager par email ouvre votre messagerie avec le lien déjà rédigé. WOLOYEM Score n'envoie pas ce message." },
         { type: "p", text: "Le QR et les messages contiennent uniquement le nom et l'adresse publique. Si un domaine de votre organisation est vérifié, l'adresse est https://ce-domaine/slug. Sinon, c'est l'adresse de la plateforme suivie de /s/slug." },
         { type: "callout", kind: "warning", text: "Une scorecard en brouillon, en pause ou archivée ne se partage pas comme page publique. La fenêtre indique : Publiez cette scorecard avant de la partager." },
-        { type: "callout", kind: "important", text: "Mettre la scorecard en pause la rend indisponible pour les nouveaux visiteurs. Réactivez-la depuis le menu Enable. Le partage public reste réservé au statut publié." },
+        { type: "callout", kind: "important", text: "Mettre la scorecard en pause la rend indisponible pour les nouveaux visiteurs. Réactivez-la depuis le menu Réactiver. Les autres actions du menu sont Modifier, Aperçu, Résultats, Dupliquer, Partager et Supprimer. Le partage public reste réservé au statut publié." },
         { type: "roles", roles: editors },
       ],
     },

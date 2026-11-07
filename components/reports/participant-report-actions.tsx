@@ -31,7 +31,7 @@ export function ParticipantReportActions({
   }
 
   return (
-    <div className="report-actions mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-5 pb-10 text-sm text-[#16324F]">
+    <div className="report-actions mx-auto flex max-w-3xl flex-wrap items-center gap-3 px-5 pb-10 text-sm text-[#071039]">
       <label className="flex items-center gap-2">
         <span>{english ? "Share for" : "Partager pendant"}</span>
         <select

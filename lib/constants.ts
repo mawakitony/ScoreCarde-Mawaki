@@ -59,5 +59,6 @@ export const NAV_ITEMS = [
   { href: "/dashboard/analytics", label: "Statistiques", icon: "analytics" },
   { href: "/dashboard/templates", label: "Modèles", icon: "templates" },
   { href: "/dashboard/guide", label: "Guide d'utilisation", icon: "guide" },
+  { href: "/dashboard/assistant", label: "Assistant IA", icon: "assistant" },
   { href: "/dashboard/settings", label: "Réglages", icon: "settings" },
 ] as const

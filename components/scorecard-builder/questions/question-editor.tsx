@@ -93,8 +93,13 @@ export function QuestionEditor({
     : undefined
 
   return (
-    <div className="space-y-5 rounded-2xl border bg-card p-5">
-      <h3 className="font-display text-2xl">Éditeur</h3>
+    <div className="space-y-5">
+      <div>
+        <p className="text-[10px] font-semibold tracking-[0.16em] text-[color:var(--brand-700)] dark:text-[color:var(--brand-300)] uppercase">
+          Propriétés
+        </p>
+        <h3 className="mt-1 text-[1.05rem] font-semibold tracking-tight text-foreground">Éditeur de question</h3>
+      </div>
       <TextField id="question-title" label="Question" value={question.title} onChange={(title) => patch({ title })} />
       <AreaField
         id="question-help"
@@ -136,7 +141,7 @@ export function QuestionEditor({
         </Select>
       </Field>
       {suggested && mode === "simple" ? (
-        <div className="rounded-xl bg-muted/50 p-3 text-sm md:col-span-2">
+        <div className="rounded-[var(--radius-control)] bg-muted/50 p-3 text-sm md:col-span-2">
           <p>La catégorie « {suggested.name} » existe déjà pour le score.</p>
           <Button type="button" variant="outline" className="mt-2 h-9" onClick={() => patch({ scoringCategoryId: suggested.id })}>
             Associer à {suggested.name}
@@ -172,7 +177,7 @@ export function QuestionEditor({
         <p className="text-sm text-muted-foreground">Le scoring automatique reste désactivé pour les réponses libres. Aucune analyse de texte n&apos;est appliquée.</p>
       ) : null}
       {mode === "advanced" && (question.type === "scale_5" || question.type === "scale_10") ? (
-        <div className="space-y-3 rounded-xl bg-muted/40 p-4">
+        <div className="space-y-3 rounded-[var(--radius-control)] bg-muted/40 p-4">
           <p className="text-sm font-medium">Répartition du score</p>
           <div className="grid grid-cols-2 gap-3">
             <NumberBox id="scale-score-from" label="Score minimum" value={question.settings.scoreFrom} onChange={(scoreFrom) => patch({ settings: { ...question.settings, scoreFrom } })} />
@@ -300,7 +305,7 @@ function OptionFields({
   })
 
   return (
-    <div className={`grid gap-3 rounded-xl border p-3 ${showValue ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_90px_auto]" : "md:grid-cols-[minmax(0,1fr)_90px_auto]"}`}>
+    <div className={`grid gap-3 rounded-[var(--radius-control)] border border-border p-3 ${showValue ? "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_90px_auto]" : "md:grid-cols-[minmax(0,1fr)_90px_auto]"}`}>
       <TextField id={`option-label-${option.id}`} label="Libellé" value={option.label} onChange={(label) => onChange({ ...option, label })} />
       {showValue ? (
         <TextField
@@ -341,7 +346,7 @@ function DisplayEditor({
 }) {
   const mode = question.displayRule?.mode ?? "always"
   return (
-    <div className="space-y-3 rounded-xl border p-4 md:col-span-2">
+    <div className="space-y-3 rounded-[var(--radius-control)] border border-border p-4 md:col-span-2">
       <div>
         <p className="text-sm font-medium">Affichage conditionnel</p>
         <p className="mt-1 text-sm text-muted-foreground">Par défaut, la question est toujours affichée. Elle ne peut dépendre que d&apos;une question précédente.</p>
@@ -349,7 +354,7 @@ function DisplayEditor({
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground">Affichage</span>
         <select
-          className="h-10 w-full rounded-lg border bg-card px-3"
+          className="h-10 w-full rounded-[var(--radius-control)] border border-border bg-card px-3"
           value={mode}
           onChange={(event) => {
             if (event.target.value === "always") {
@@ -378,7 +383,7 @@ function DisplayEditor({
               <div key={`${condition.questionId}-${index}`} className="grid gap-2 md:grid-cols-[auto_1fr_1fr_1fr] md:items-end">
                 <p className="pb-2 text-sm">{index === 0 ? "SI" : "ET"}</p>
                 <select
-                  className="h-10 rounded-lg border bg-card px-3 text-sm"
+                  className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3 text-sm"
                   aria-label="Question précédente"
                   value={condition.questionId}
                   onChange={(event) => {
@@ -395,7 +400,7 @@ function DisplayEditor({
                   {earlier.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
                 </select>
                 <select
-                  className="h-10 rounded-lg border bg-card px-3 text-sm"
+                  className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3 text-sm"
                   aria-label="Opérateur"
                   value={condition.operator}
                   onChange={(event) => onChange({
@@ -445,7 +450,7 @@ function ConditionValue({
 }) {
   if (source && isChoiceType(source.type)) {
     return (
-      <select className="h-10 rounded-lg border bg-card px-3 text-sm" aria-label="Valeur" value={value} onChange={(event) => onChange(event.target.value)}>
+      <select className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3 text-sm" aria-label="Valeur" value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">Choisir</option>
         {source.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
       </select>

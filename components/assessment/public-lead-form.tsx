@@ -51,7 +51,7 @@ export function PublicLeadForm({
               <label key={key} className="block text-sm">
                 {field.label}
                 {field.required ? " *" : ""}
-                <select name={key} className="mt-1 h-12 w-full rounded-xl border bg-white px-3" defaultValue="">
+                <select name={key} className="mt-1 h-12 w-full rounded-[var(--radius-control)] border bg-white px-3" defaultValue="">
                   <option value="">Choisir</option>
                   {countryChoices().map((country) => (
                     <option key={country.code} value={country.code}>
@@ -72,7 +72,7 @@ export function PublicLeadForm({
                 placeholder={field.placeholder}
                 inputMode={inputMode}
                 autoComplete={key === "email" ? "email" : key === "first_name" ? "given-name" : key === "last_name" ? "family-name" : "on"}
-                className="mt-1 h-12 w-full rounded-xl border bg-white px-3"
+                className="mt-1 h-12 w-full rounded-[var(--radius-control)] border bg-white px-3"
               />
             </label>
           )
@@ -102,7 +102,7 @@ export function PublicLeadForm({
       <button
         type="submit"
         disabled={pending}
-        className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-[#16324F] px-6 text-white disabled:opacity-60 sm:w-auto"
+        className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-control)] bg-[#071039] px-6 text-white disabled:opacity-60 sm:w-auto"
       >
         {pending ? "Envoi..." : "Continuer"}
       </button>

@@ -45,6 +45,13 @@ export function supportCanRead(input: { sessionOrgId: string; requestedOrgId: st
   return input.open && input.sessionOrgId === input.requestedOrgId
 }
 
+/** Intersect org-id filters with an active support session scope. */
+export function constrainOrgIds(scopeOrgId: string | null, ids: string[] | null): string[] | null {
+  if (!scopeOrgId) return ids
+  if (ids === null) return [scopeOrgId]
+  return ids.filter((id) => id === scopeOrgId)
+}
+
 export function canSuspendOrganization(input: { slug: string; allowed: boolean }) {
   return input.allowed && input.slug !== WOLOYEM_SLUG
 }

@@ -4,151 +4,210 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts"
+import {
+  chartAxisStroke,
+  chartGridStroke,
+  chartLegendStyle,
+  chartSeries,
+  chartTick,
+  chartTickSm,
+} from "@/components/dashboard/chart-theme"
+import { PremiumChartTooltip } from "@/components/dashboard/chart-tooltip"
 import { EmptyState } from "@/components/dashboard/empty-state"
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion"
+import { ResultDistributionCard } from "@/components/dashboard/result-distribution-card"
+import { TopScorecardsCard } from "@/components/dashboard/top-scorecards-card"
 import { formatChartDate, formatNumber } from "@/lib/format"
 import type { Overview } from "@/lib/validators/scorecard"
 
-const colors = ["#16324F", "#C4A15A", "#2F6F73", "#8C4A3A", "#6D7C59"]
-
-function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="min-w-0 overflow-hidden rounded-2xl border bg-card p-5 shadow-sm">
-      <h2 className="text-sm font-medium">{title}</h2>
-      <div className="mt-4 h-64 min-w-0 overflow-hidden">{children}</div>
-    </section>
-  )
+export function ResultShare({ data }: { data: Overview }) {
+  return <ResultDistributionCard data={data} />
 }
 
-export function OverviewCharts({ data }: { data: Overview }) {
-  const leads = data.leads_by_day.map((row) => ({
-    ...row,
-    label: formatChartDate(row.date),
-  }))
+export function ScorecardLeaders({ data }: { data: Overview }) {
+  return <TopScorecardsCard data={data} />
+}
+
+function seriesOf(data: Overview) {
+  const leads = data.leads_by_day.map((row) => ({ ...row, label: formatChartDate(row.date) }))
   const completion = data.completion_by_day.map((row) => ({
     ...row,
     label: formatChartDate(row.date),
     rate: row.started === 0 ? 0 : Math.round((row.completed / row.started) * 1000) / 10,
   }))
-  const scores = data.score_by_day.map((row) => ({
-    ...row,
-    label: formatChartDate(row.date),
-  }))
+  const scores = data.score_by_day.map((row) => ({ ...row, label: formatChartDate(row.date) }))
+  return { leads, completion, scores }
+}
+
+function ChartTooltip() {
+  return (
+    <Tooltip
+      content={<PremiumChartTooltip />}
+      cursor={{ fill: "var(--muted)", opacity: 0.32 }}
+      animationDuration={160}
+      wrapperStyle={{ outline: "none" }}
+    />
+  )
+}
+
+function ChartHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="mb-1">
+      <h3 className="text-[16px] font-semibold tracking-tight text-foreground">{title}</h3>
+      {subtitle ? <p className="mt-0.5 text-[13px] text-muted-foreground">{subtitle}</p> : null}
+    </div>
+  )
+}
+
+export function LeadsTrend({ data }: { data: Overview }) {
+  const reduced = usePrefersReducedMotion()
+  const { leads } = seriesOf(data)
   const hasLeads = data.leads_by_day.some((row) => row.count > 0)
-  const hasCompletion = data.completion_by_day.length > 0
-  const hasScores = data.score_by_day.length > 0
+  const sparse = hasLeads && data.leads_by_day.filter((row) => row.count > 0).length <= 2
 
   return (
-    <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-      <ChartCard title="Leads par jour">
+    <div className="min-w-0">
+      <ChartHeading
+        title="Leads par jour"
+        subtitle={sparse ? "Peu de jours avec activité sur cette période" : "Volume capturé sur la période sélectionnée"}
+      />
+      <div className="mt-3 h-80 min-w-0 md:h-[22rem]">
         {hasLeads ? (
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={leads}>
-              <CartesianGrid vertical={false} stroke="#E3DACB" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="#5E6D7E" />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} stroke="#5E6D7E" />
-              <Tooltip />
-              <Bar dataKey="count" name="Leads" fill="#16324F" radius={[6, 6, 0, 0]} />
+            <BarChart data={leads} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={chartGridStroke} strokeDasharray="3 6" />
+              <XAxis dataKey="label" tick={chartTick} stroke={chartAxisStroke} tickLine={false} axisLine={{ stroke: chartAxisStroke }} />
+              <YAxis allowDecimals={false} tick={chartTick} stroke={chartAxisStroke} tickLine={false} axisLine={{ stroke: chartAxisStroke }} width={36} />
+              <ChartTooltip />
+              <Bar
+                dataKey="count"
+                name="Leads"
+                fill={chartSeries.primary}
+                radius={[8, 8, 0, 0]}
+                maxBarSize={48}
+                isAnimationActive={!reduced}
+                animationDuration={450}
+                animationEasing="ease-out"
+              />
             </BarChart>
           </ResponsiveContainer>
         ) : (
           <EmptyState title="Pas encore de leads" description="Les leads apparaîtront ici dès les premières évaluations." />
         )}
-      </ChartCard>
+      </div>
+    </div>
+  )
+}
 
-      <ChartCard title="Taux de complétion">
+export function CompletionTrend({ data }: { data: Overview }) {
+  const reduced = usePrefersReducedMotion()
+  const { completion } = seriesOf(data)
+  const hasCompletion = data.completion_by_day.length > 0
+  return (
+    <div className="min-w-0">
+      <ChartHeading title="Taux de complétion" subtitle="Sessions démarrées vs terminées" />
+      <div className="mt-4 h-64 min-w-0">
         {hasCompletion ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={completion}>
-              <CartesianGrid vertical={false} stroke="#E3DACB" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="#5E6D7E" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#5E6D7E" />
-              <Tooltip />
-              <Line type="monotone" dataKey="started" name="Démarrées" stroke="#16324F" strokeWidth={2} dot={false} />
-              <Line type="monotone" dataKey="completed" name="Terminées" stroke="#C4A15A" strokeWidth={2} dot={false} />
+            <LineChart data={completion} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={chartGridStroke} strokeDasharray="3 6" />
+              <XAxis dataKey="label" tick={chartTickSm} stroke={chartAxisStroke} tickLine={false} axisLine={{ stroke: chartAxisStroke }} />
+              <YAxis tick={chartTickSm} stroke={chartAxisStroke} tickLine={false} axisLine={{ stroke: chartAxisStroke }} width={36} />
+              <ChartTooltip />
+              <Legend wrapperStyle={chartLegendStyle} iconType="circle" iconSize={8} />
+              <Line
+                type="monotone"
+                dataKey="started"
+                name="Démarrées"
+                stroke={chartSeries.primary}
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0 }}
+                isAnimationActive={!reduced}
+                animationDuration={450}
+              />
+              <Line
+                type="monotone"
+                dataKey="completed"
+                name="Terminées"
+                stroke={chartSeries.secondary}
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0 }}
+                isAnimationActive={!reduced}
+                animationDuration={450}
+              />
             </LineChart>
           </ResponsiveContainer>
         ) : (
           <EmptyState title="Aucune session" description="Le taux de complétion se calcule quand des évaluations démarrent." />
         )}
-      </ChartCard>
+      </div>
+    </div>
+  )
+}
 
-      <ChartCard title="Score moyen">
+export function ScoreTrend({ data }: { data: Overview }) {
+  const reduced = usePrefersReducedMotion()
+  const { scores } = seriesOf(data)
+  const hasScores = data.score_by_day.length > 0
+  return (
+    <div className="min-w-0">
+      <ChartHeading title="Score moyen" subtitle="Pourcentage moyen des évaluations terminées" />
+      <div className="mt-4 h-64 min-w-0">
         {hasScores ? (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={scores}>
-              <CartesianGrid vertical={false} stroke="#E3DACB" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} stroke="#5E6D7E" />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} stroke="#5E6D7E" />
-              <Tooltip />
-              <Line type="monotone" dataKey="average" name="Score %" stroke="#2F6F73" strokeWidth={2} dot={false} />
+            <LineChart data={scores} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={chartGridStroke} strokeDasharray="3 6" />
+              <XAxis dataKey="label" tick={chartTickSm} stroke={chartAxisStroke} tickLine={false} axisLine={{ stroke: chartAxisStroke }} />
+              <YAxis domain={[0, 100]} tick={chartTickSm} stroke={chartAxisStroke} tickLine={false} axisLine={{ stroke: chartAxisStroke }} width={36} />
+              <ChartTooltip />
+              <Legend wrapperStyle={chartLegendStyle} iconType="circle" iconSize={8} />
+              <Line
+                type="monotone"
+                dataKey="average"
+                name="Score %"
+                stroke={chartSeries.tertiary}
+                strokeWidth={2.5}
+                dot={false}
+                activeDot={{ r: 5, strokeWidth: 0 }}
+                isAnimationActive={!reduced}
+                animationDuration={450}
+              />
             </LineChart>
           </ResponsiveContainer>
         ) : (
           <EmptyState title="Aucun score" description="Le score moyen s'affichera après les premières évaluations terminées." />
         )}
-      </ChartCard>
-
-      <ChartCard title="Répartition des résultats">
-        {data.result_distribution.length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={data.result_distribution} dataKey="count" nameKey="label" innerRadius={55} outerRadius={85}>
-                {data.result_distribution.map((entry, index) => (
-                  <Cell key={entry.label} fill={colors[index % colors.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        ) : (
-          <EmptyState title="Pas de répartition" description="Les statuts de résultat apparaîtront selon les seuils de chaque scorecard." />
-        )}
-      </ChartCard>
-
-      <ChartCard title="Top scorecards">
-        {data.top_scorecards.length > 0 ? (
-          <ul className="space-y-3">
-            {data.top_scorecards.map((scorecard) => (
-              <li key={scorecard.id} className="flex min-w-0 items-center justify-between gap-3 text-sm">
-                <span className="min-w-0 truncate">{scorecard.name}</span>
-                <span className="shrink-0 text-muted-foreground">
-                  {formatNumber(scorecard.leads)} leads · {formatNumber(scorecard.completed)} résultats
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState title="Aucune scorecard" description="Créez une première scorecard pour suivre ses performances." />
-        )}
-      </ChartCard>
-
-      <ChartCard title="Sources des leads">
-        {data.sources.length > 0 ? (
-          <ul className="space-y-3">
-            {data.sources.map((source) => (
-              <li key={source.source} className="flex items-center justify-between text-sm">
-                <span className="capitalize">{source.source}</span>
-                <span className="text-muted-foreground">{formatNumber(source.count)}</span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState
-            title="Sources à venir"
-            description="Les paramètres UTM et le referrer seront enregistrés avec chaque lead."
-          />
-        )}
-      </ChartCard>
+      </div>
     </div>
+  )
+}
+
+export function LeadSources({ data }: { data: Overview }) {
+  return (
+    <section className="ws-panel ws-enter p-4 md:p-5">
+      <h2 className="text-[16px] font-semibold tracking-tight text-foreground">Sources des leads</h2>
+      {data.sources.length === 0 ? (
+        <p className="mt-3 text-[13px] text-muted-foreground">Les sources apparaîtront avec les premiers leads.</p>
+      ) : (
+        <ul className="mt-4 space-y-2.5 text-[13px]">
+          {data.sources.map((source) => (
+            <li key={source.source} className="flex items-center justify-between gap-3">
+              <span className="capitalize font-medium text-foreground">{source.source}</span>
+              <span className="tabular-nums text-muted-foreground">{formatNumber(source.count)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }

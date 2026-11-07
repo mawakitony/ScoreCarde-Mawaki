@@ -80,6 +80,13 @@ export type BuilderPage = {
   showPrivacy: boolean
   benefits: BuilderBenefit[]
   testimonial: BuilderTestimonial
+  landingTheme: import("@/lib/scorecard-themes/types").LandingThemeId
+  highlightText: string
+  secondaryCtaLabel: string
+  trustLabel: string
+  backgroundColor: string
+  accentColor: string
+  demoStats: import("@/lib/scorecard-themes/types").ThemeStatCard[]
 }
 
 export type LeadField = {

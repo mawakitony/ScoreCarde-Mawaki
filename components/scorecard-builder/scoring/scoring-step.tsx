@@ -115,7 +115,7 @@ export function ScoringStep({
     <div className="space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-3xl">Score</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Score</h2>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">
             Chaque catégorie a un poids. Le total doit faire 100 %. Le résultat correspond ensuite à une plage.
           </p>
@@ -140,7 +140,7 @@ export function ScoringStep({
         onConfirm={() => void confirmProposal()}
       />
       {categories.length === 0 ? (
-        <p className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">
+        <p className="rounded-[var(--radius-panel)] border border-dashed border-border bg-card/50 p-8 text-sm text-muted-foreground">
           Sans catégorie de scoring, le résultat utilise le pourcentage simple des points.
         </p>
       ) : (
@@ -157,8 +157,8 @@ export function ScoringStep({
           )}
         />
       )}
-      <section className="rounded-2xl border p-5">
-        <h3 className="font-display text-2xl">Simulateur</h3>
+      <section className="rounded-[var(--radius-panel)] border border-border p-5">
+        <h3 className="font-display text-2xl font-semibold tracking-tight">Simulateur</h3>
         <p className="mt-2 text-sm text-muted-foreground">Réservé à l&apos;administrateur. Les réponses ne sont pas enregistrées.</p>
         <div className="mt-5 space-y-4">
           {questions.filter((question) => question.isScored).length === 0 ? (
@@ -261,10 +261,10 @@ function ScoringAssistant({
   const total = proposal ? sumWeights(proposal.items.map((item) => item.weight)) : 0
   const balanced = proposal ? Math.abs(total - 100) < 0.05 : false
   return (
-    <section className="rounded-2xl border p-5">
+    <section className="rounded-[var(--radius-panel)] border border-border p-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h3 className="font-display text-2xl">Configurer automatiquement le scoring</h3>
+          <h3 className="font-display text-2xl font-semibold tracking-tight">Configurer automatiquement le scoring</h3>
           <p className="mt-2 max-w-xl text-sm text-muted-foreground">La proposition s&apos;affiche avant toute modification. Une catégorie déjà associée à une question n&apos;est pas remplacée.</p>
         </div>
         <Button type="button" variant="outline" className="h-10" onClick={onOpen}>Voir la proposition</Button>
@@ -352,7 +352,7 @@ function SimulatorControl({
 
   return (
     <select
-      className="h-10 rounded-lg border bg-card px-3 text-sm"
+      className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3 text-sm"
       aria-label={`Réponse simulée pour ${question.title}`}
       value={answer?.optionIds[0] ?? ""}
       onChange={(event) => onChange({ optionIds: event.target.value ? [event.target.value] : [] })}
@@ -391,7 +391,7 @@ function ScoringCard({
   })
 
   return (
-    <article className="space-y-4 rounded-2xl border bg-card p-4">
+    <article className="space-y-4 rounded-[var(--radius-panel)] border border-border bg-card shadow-[var(--shadow-panel)] p-4">
       <div className="grid gap-4 md:grid-cols-2">
         <TextField id={`scoring-name-${category.id}`} label="Nom" value={category.name} onChange={(name) => onChange({ ...category, name })} />
         <Field label="Poids (%)" htmlFor={`scoring-weight-${category.id}`}>
@@ -432,7 +432,7 @@ function ScoringCard({
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-muted/50 p-4">
+    <div className="rounded-[var(--radius-control)] bg-muted/50 p-4">
       <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">{label}</p>
       <p className="mt-1 text-2xl">{value}</p>
     </div>

@@ -2,8 +2,8 @@ import { hasFeature, type ResolvedEntitlements } from "./entitlements"
 
 export const WOLOYEM_BRAND = {
   name: "WOLOYEM Score",
-  primaryColor: "#16324F",
-  secondaryColor: "#C4A15A",
+  primaryColor: "#071039",
+  secondaryColor: "#6E92F2",
   logoUrl: "",
 }
 

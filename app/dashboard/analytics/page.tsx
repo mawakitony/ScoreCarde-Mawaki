@@ -1,56 +1,63 @@
 import { Suspense } from "react"
-import { ConversionSummary } from "@/components/analytics/conversions"
-import { AnalyticsReport } from "@/components/analytics/report"
-import { PeriodFilter } from "@/components/dashboard/period-filter"
+import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard"
+import { AnalyticsHeader } from "@/components/analytics/analytics-header"
 import { resolveRange } from "@/lib/analytics/range"
 import { getConversionAnalytics } from "@/lib/data/conversions"
-import { getReportMetrics } from "@/lib/data/reports"
 import { getCommercialAnalytics } from "@/lib/data/crm"
+import { ensureMembership } from "@/lib/data/membership"
+import { getOverview } from "@/lib/data/overview"
+import { getReportMetrics } from "@/lib/data/reports"
+import { listScorecards } from "@/lib/data/scorecards"
 
 export const metadata = { title: "Analytics" }
 
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; from?: string; to?: string }>
+  searchParams: Promise<{ range?: string; from?: string; to?: string; scorecard?: string }>
 }) {
-  const range = resolveRange(await searchParams)
-  const [commercial, conversions, reports] = await Promise.all([getCommercialAnalytics(range), getConversionAnalytics(range), getReportMetrics(range)])
+  const params = await searchParams
+  const range = resolveRange(params)
+  const membership = await ensureMembership()
+  const scorecardList = membership ? await listScorecards(membership.organization.id) : { scorecards: [] }
+  const scorecardOptions = scorecardList.scorecards.map((row) => ({ id: row.id, name: row.name }))
+  const requested = params.scorecard?.trim() || null
+  const scorecardId =
+    requested && scorecardOptions.some((row) => row.id === requested) ? requested : null
+
+  // Trend series come from dashboard_overview (org-wide, no p_scorecard).
+  // When a scorecard filter is active, omit them to avoid mixing scopes.
+  const [commercial, conversions, reports, overview] = await Promise.all([
+    getCommercialAnalytics(range, scorecardId ?? undefined),
+    getConversionAnalytics(range),
+    getReportMetrics(range),
+    scorecardId ? Promise.resolve(null) : getOverview(range),
+  ])
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">Performance</p>
-          <h1 className="font-display text-4xl">Analytics</h1>
-        </div>
-        <Suspense fallback={null}>
-          <PeriodFilter range={range.key} from={range.fromInput} to={range.toInput} />
-        </Suspense>
-      </div>
+    <div className="space-y-4 bg-transparent md:space-y-5">
+      <Suspense fallback={null}>
+        <AnalyticsHeader
+          range={range.key}
+          from={range.fromInput}
+          to={range.toInput}
+          scorecardId={scorecardId}
+          scorecards={scorecardOptions}
+        />
+      </Suspense>
+
       {"error" in commercial ? (
-        <p className="rounded-2xl border bg-card px-5 py-4 text-sm">{commercial.error}</p>
+        <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm shadow-[var(--shadow-panel)]">
+          {commercial.error}
+        </p>
       ) : (
-        <>
-          <AnalyticsReport data={commercial.data} />
-          <ConversionSummary
-            ctaClicks={commercial.data.current.cta_clicks}
-            leads={commercial.data.current.captured}
-            conversions={conversions.conversions}
-            values={conversions.values}
-            byScorecard={conversions.byScorecard}
-            byCampaign={conversions.byCampaign}
-          />
-          <section className="rounded-3xl border bg-card p-6">
-            <h2 className="font-display text-2xl">Rapports</h2>
-            <dl className="mt-4 grid gap-4 sm:grid-cols-4 text-sm">
-              <div><dt className="text-muted-foreground">Générés</dt><dd className="font-display text-3xl">{reports.reports_generated}</dd></div>
-              <div><dt className="text-muted-foreground">Téléchargés</dt><dd className="font-display text-3xl">{reports.reports_downloaded}</dd></div>
-              <div><dt className="text-muted-foreground">Partagés</dt><dd className="font-display text-3xl">{reports.reports_shared}</dd></div>
-              <div><dt className="text-muted-foreground">Emails</dt><dd className="font-display text-3xl">{reports.report_email_sent}</dd></div>
-            </dl>
-          </section>
-        </>
+        <AnalyticsDashboard
+          commercial={commercial.data}
+          overview={overview && !("error" in overview) ? overview.data : null}
+          scorecardFiltered={Boolean(scorecardId)}
+          conversions={conversions}
+          reports={reports}
+        />
       )}
     </div>
   )

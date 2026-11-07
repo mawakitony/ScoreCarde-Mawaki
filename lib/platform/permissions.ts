@@ -6,6 +6,13 @@ export const PLATFORM_PERMISSIONS = [
   "platform.organizations.manage",
   "platform.support.access",
   "platform.billing.read",
+  /**
+   * Reserved for future Platform Admin *write* billing actions (force plan change,
+   * refund/credit, Stripe customer mutation from Platform). Not used today:
+   * subscriptions/payments pages are read-only (`billing.read`); org suspension uses
+   * `organizations.manage`; entitlements use `entitlements.manage`.
+   * Do not grant to support/operations/finance until a real mutation exists.
+   */
   "platform.billing.manage",
   "platform.jobs.read",
   "platform.jobs.retry",
@@ -21,6 +28,7 @@ const MATRIX: Record<PlatformRole, readonly PlatformPermission[]> = {
   super_admin: ALL,
   support: ["platform.organizations.read", "platform.support.access", "platform.billing.read", "platform.jobs.read", "platform.audit.read"],
   operations: ["platform.organizations.read", "platform.jobs.read", "platform.jobs.retry", "platform.audit.read"],
+  // finance: read-only billing — never billing.manage until a dedicated write path ships
   finance: ["platform.organizations.read", "platform.billing.read", "platform.audit.read"],
 }
 

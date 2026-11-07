@@ -173,7 +173,7 @@ export function ScorecardForm({
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
-        <h2 className="font-display text-2xl md:col-span-2">Identité visuelle</h2>
+        <h2 className="md:col-span-2 text-base font-semibold text-foreground">Identité visuelle</h2>
         <Controller
           control={form.control}
           name="primaryColor"
@@ -219,7 +219,7 @@ export function ScorecardForm({
       </section>
 
       <section className="grid gap-5 md:grid-cols-2">
-        <h2 className="font-display text-2xl md:col-span-2">SEO</h2>
+        <h2 className="md:col-span-2 text-base font-semibold text-foreground">SEO</h2>
         <Field label="SEO title" error={form.formState.errors.seoTitle?.message}>
           <Input className="h-10" {...form.register("seoTitle")} />
         </Field>

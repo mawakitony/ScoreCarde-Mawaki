@@ -57,5 +57,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Expose pathname to server layouts (billing workspace gate).
+  supabaseResponse.headers.set("x-pathname", path)
   return supabaseResponse
 }

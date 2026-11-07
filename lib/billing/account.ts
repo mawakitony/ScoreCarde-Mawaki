@@ -119,7 +119,8 @@ export async function consumeMonthly(organizationId: string, metric: UsageMetric
 export async function allowNewAssessment(organizationId: string) {
   if (await activeSuspension(organizationId)) return false
   const entitlements = await loadEntitlements(organizationId)
-  if (entitlements.access === "suspended") return false
+  // Public assessments stay open on paid plans; block when billing-locked (expired trial / unpaid).
+  if (entitlements.access === "suspended" || entitlements.access === "restricted") return false
   const leads = await monthlyUsage(organizationId, "leads")
   if (entitlements.limits.leads !== null && leads >= entitlements.limits.leads) return false
   return consumeMonthly(organizationId, "assessment_starts", entitlements.limits.assessment_starts)

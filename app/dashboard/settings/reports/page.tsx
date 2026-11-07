@@ -6,6 +6,9 @@ import type { Json } from "@/types/database"
 
 export const metadata = { title: "Rapports" }
 
+const panel = "rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-panel)] md:p-6"
+const field = "h-10 w-full rounded-xl border border-border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand-500)]/25 disabled:opacity-60"
+
 function settings(value: Json | undefined) {
   const row = value && typeof value === "object" && !Array.isArray(value) ? value : {}
   return {
@@ -26,24 +29,46 @@ export default async function ReportSettingsPage() {
   const current = settings(data?.report_settings)
   const editor = canEdit(membership.role)
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="font-display text-4xl">Rapports</h1>
-      <form action={async (formData) => {
-        "use server"
-        await saveOrgReportSettings({
-          brandName: String(formData.get("brandName") ?? ""),
-          website: String(formData.get("website") ?? ""),
-          email: String(formData.get("email") ?? ""),
-          footer: String(formData.get("footer") ?? ""),
-          aiMode: current.aiMode,
-        })
-      }} className="grid gap-3 rounded-3xl border bg-card p-6">
-        <input name="brandName" defaultValue={current.brandName} aria-label="Marque" className="h-10 rounded-xl border px-3" disabled={!editor} />
-        <input name="website" defaultValue={current.website} aria-label="Site" placeholder="Site web" className="h-10 rounded-xl border px-3" disabled={!editor} />
-        <input name="email" defaultValue={current.email} aria-label="Email de contact" placeholder="Email de contact" className="h-10 rounded-xl border px-3" disabled={!editor} />
-        <input name="footer" defaultValue={current.footer} aria-label="Pied de page" placeholder="Pied de page" className="h-10 rounded-xl border px-3" disabled={!editor} />
-        {editor ? <button type="submit" className="h-10 w-fit rounded-xl bg-primary px-4 text-sm text-primary-foreground">Enregistrer</button> : null}
+    <section className={panel}>
+      <h2 className="text-base font-semibold text-foreground">Rapports</h2>
+      <p className="mt-1 text-sm text-muted-foreground">Marque et coordonnées affichées sur les rapports générés.</p>
+      <form
+        action={async (formData) => {
+          "use server"
+          await saveOrgReportSettings({
+            brandName: String(formData.get("brandName") ?? ""),
+            website: String(formData.get("website") ?? ""),
+            email: String(formData.get("email") ?? ""),
+            footer: String(formData.get("footer") ?? ""),
+            aiMode: current.aiMode,
+          })
+        }}
+        className="mt-5 grid gap-4 sm:grid-cols-2"
+      >
+        <label className="space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Marque</span>
+          <input name="brandName" defaultValue={current.brandName} aria-label="Marque" className={field} disabled={!editor} />
+        </label>
+        <label className="space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Site web</span>
+          <input name="website" defaultValue={current.website} aria-label="Site" placeholder="Site web" className={field} disabled={!editor} />
+        </label>
+        <label className="space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Email de contact</span>
+          <input name="email" defaultValue={current.email} aria-label="Email de contact" placeholder="Email de contact" className={field} disabled={!editor} />
+        </label>
+        <label className="space-y-1.5 text-sm">
+          <span className="font-medium text-foreground">Pied de page</span>
+          <input name="footer" defaultValue={current.footer} aria-label="Pied de page" placeholder="Pied de page" className={field} disabled={!editor} />
+        </label>
+        {editor ? (
+          <div className="sm:col-span-2">
+            <button type="submit" className="h-10 rounded-xl bg-[color:var(--brand-950)] px-4 text-sm font-semibold text-white dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]">
+              Enregistrer
+            </button>
+          </div>
+        ) : null}
       </form>
-    </div>
+    </section>
   )
 }

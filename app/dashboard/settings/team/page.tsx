@@ -21,7 +21,9 @@ export default async function TeamPage({
     : null
   const user = await requireUser()
   const membership = await ensureMembership()
-  if (!membership || !can({ role: membership.role }, "team.manage")) return <p>Permission refusée.</p>
+  if (!membership || !can({ role: membership.role }, "team.manage")) {
+    return <p className="rounded-2xl border border-border bg-card px-5 py-4 text-sm text-muted-foreground">Permission refusée.</p>
+  }
   const members = await listMembers(membership.organization.id)
   const supabase = await createClient()
   const pending = await supabase
@@ -82,8 +84,11 @@ export default async function TeamPage({
   })
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="font-display text-4xl">Équipe</h1>
+    <div className="space-y-4">
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-panel)] md:p-6">
+        <h2 className="text-base font-semibold text-foreground">Équipe</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Membres, rôles, invitations et premier accès.</p>
+      </section>
       <TeamMemberList
         canChangeRoles={membership.role === "owner"}
         currentUserId={user.id}

@@ -53,7 +53,7 @@ export function TextField({
     <Field label={label} hint={hint} error={error} htmlFor={id}>
       <Input
         id={id}
-        className="h-10"
+        className="h-10 rounded-xl"
         type={type}
         value={value}
         aria-invalid={Boolean(error)}
@@ -81,7 +81,7 @@ export function AreaField({
 }) {
   return (
     <Field label={label} hint={hint} htmlFor={id}>
-      <Textarea id={id} rows={rows} value={value} onChange={(event) => onChange(event.target.value)} />
+      <Textarea id={id} className="rounded-xl" rows={rows} value={value} onChange={(event) => onChange(event.target.value)} />
     </Field>
   )
 }

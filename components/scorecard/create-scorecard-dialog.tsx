@@ -21,9 +21,9 @@ export function CreateScorecardDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="h-10 px-4">
-          <Plus />
-          Create Scorecard
+        <Button className="h-9 rounded-xl bg-[color:var(--brand-950)] px-4 text-white dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]">
+          <Plus className="size-4" aria-hidden />
+          Nouvelle scorecard
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">

@@ -9,10 +9,15 @@ import { createAdminClient } from "@/lib/supabase/admin"
 
 export const metadata = { title: "Domaines" }
 
+const panel = "rounded-2xl border border-border bg-card p-5 shadow-[var(--shadow-panel)] md:p-6"
+const field = "h-10 rounded-xl border border-border bg-card px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--brand-500)]/25"
+
 export default async function DomainsPage() {
   await requireUser()
   const membership = await ensureMembership()
-  if (!membership || !can({ role: membership.role }, "team.manage")) return <p>Permission refusée.</p>
+  if (!membership || !can({ role: membership.role }, "team.manage")) {
+    return <p className={`${panel} text-sm text-muted-foreground`}>Permission refusée.</p>
+  }
   const entitlements = await loadEntitlements(membership.organization.id)
   const allowed = hasFeature(entitlements, "custom_domain")
   const provider = activeDomainProvider()
@@ -25,39 +30,71 @@ export default async function DomainsPage() {
     domains = []
   }
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="font-display text-4xl">Domaines</h1>
-      <p className="text-sm text-muted-foreground">Les adresses `/s/[slug]` restent disponibles. Un domaine vérifié sert la scorecard sur l&apos;hôte du client, sans redirection.</p>
-      {process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID ? <p className="text-sm">SSL provisioning est géré par Vercel.</p> : <p className="text-sm">Vercel domain automation is not configured.</p>}
-      {allowed ? (
-        <form action={async (formData) => {
-          "use server"
-          await addDomain(formData)
-        }} className="flex flex-wrap gap-2">
-          <input name="domain" placeholder="score.client.com" className="h-11 rounded-xl border px-3" />
-          <input name="default_slug" placeholder="slug par défaut" className="h-11 rounded-xl border px-3" />
-          <button className="h-11 rounded-xl bg-[#16324F] px-4 text-sm text-[#f7f4ee]" type="submit">Ajouter</button>
-        </form>
-      ) : <p className="text-sm">Les domaines personnalisés sont disponibles à partir du plan Business. <a className="underline" href="/dashboard/settings/billing">Upgrade plan</a></p>}
-      <ul className="space-y-4">
+    <div className="space-y-4">
+      <section className={panel}>
+        <h2 className="text-base font-semibold text-foreground">Domaines</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Les adresses `/s/[slug]` restent disponibles. Un domaine vérifié sert la scorecard sur l&apos;hôte du client, sans redirection.
+        </p>
+        {process.env.VERCEL_TOKEN && process.env.VERCEL_PROJECT_ID ? (
+          <p className="mt-3 text-sm text-muted-foreground">Le provisionnement SSL est géré par Vercel.</p>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">L&apos;automatisation des domaines Vercel n&apos;est pas configurée.</p>
+        )}
+        {allowed ? (
+          <form
+            action={async (formData) => {
+              "use server"
+              await addDomain(formData)
+            }}
+            className="mt-5 flex flex-wrap gap-2"
+          >
+            <input name="domain" placeholder="score.client.com" className={field} />
+            <input name="default_slug" placeholder="slug par défaut" className={field} />
+            <button className="h-10 rounded-xl bg-[color:var(--brand-950)] px-4 text-sm font-semibold text-white dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]" type="submit">
+              Ajouter
+            </button>
+          </form>
+        ) : (
+          <p className="mt-5 text-sm text-muted-foreground">
+            Les domaines personnalisés sont disponibles à partir du plan Business.{" "}
+            <a className="font-medium text-[color:var(--brand-950)] dark:text-[color:var(--brand-500)] underline" href="/dashboard/settings/billing">
+              Voir la facturation
+            </a>
+          </p>
+        )}
+      </section>
+      <ul className="space-y-3">
         {domains.map((domain) => {
           const instructions = provider.instructions(domain.domain, domain.verification_token)
           return (
-            <li key={domain.id} className="rounded-3xl border bg-card p-5 text-sm">
-              <p className="font-medium">{domain.domain} · {domain.status}</p>
-              <p className="mt-2 font-mono text-xs">{instructions.record} {instructions.host} {instructions.value}</p>
+            <li key={domain.id} className={`${panel} text-sm`}>
+              <p className="font-medium text-foreground">
+                {domain.domain} · {domain.status}
+              </p>
+              <p className="mt-2 font-mono text-xs text-muted-foreground">
+                {instructions.record} {instructions.host} {instructions.value}
+              </p>
               <div className="mt-3 flex gap-4">
-                <form action={async () => {
-                  "use server"
-                  await verifyDomain(domain.id)
-                }}>
-                  <button className="underline" type="submit">Vérifier</button>
+                <form
+                  action={async () => {
+                    "use server"
+                    await verifyDomain(domain.id)
+                  }}
+                >
+                  <button className="font-medium text-[color:var(--brand-950)] dark:text-[color:var(--brand-500)] underline" type="submit">
+                    Vérifier
+                  </button>
                 </form>
-                <form action={async () => {
-                  "use server"
-                  await removeDomain(domain.id)
-                }}>
-                  <button className="underline" type="submit">Retirer</button>
+                <form
+                  action={async () => {
+                    "use server"
+                    await removeDomain(domain.id)
+                  }}
+                >
+                  <button className="font-medium text-destructive underline" type="submit">
+                    Retirer
+                  </button>
                 </form>
               </div>
             </li>

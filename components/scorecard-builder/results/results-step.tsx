@@ -85,7 +85,7 @@ export function ResultsStep({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-3xl">Résultats</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-foreground">Résultats</h2>
           <p className="mt-2 text-sm text-muted-foreground">Titre, recommandation et appel à l&apos;action pour chaque plage.</p>
         </div>
         <Button type="button" className="h-10" disabled={pending} onClick={() => void addRange()}>
@@ -100,7 +100,7 @@ export function ResultsStep({
         </div>
       ) : null}
       {ranges.length === 0 ? (
-        <p className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">Aucune plage de résultat. Ajoutez la première, par exemple 0–49 puis 50–100, sans trou ni chevauchement.</p>
+        <p className="rounded-[var(--radius-panel)] border border-dashed border-border bg-card/50 p-8 text-sm text-muted-foreground">Aucune plage de résultat. Ajoutez la première, par exemple 0–49 puis 50–100, sans trou ni chevauchement.</p>
       ) : (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-4">
@@ -116,7 +116,7 @@ export function ResultsStep({
               />
             ))}
           </div>
-          <div className="overflow-hidden rounded-3xl border bg-[#f7f4ee]">
+          <div className="overflow-hidden rounded-[var(--radius-panel)] border border-border bg-[#f7f4ee] shadow-[var(--shadow-panel)]">
             {selected ? (
               <ResultView
                 percentage={selected.maxPercent}
@@ -170,7 +170,7 @@ function RangeCard({
   })
 
   return (
-    <article className={`space-y-4 rounded-2xl border p-4 ${active ? "border-primary" : "bg-card"}`}>
+    <article className={`space-y-4 rounded-[var(--radius-panel)] border bg-card p-4 shadow-[var(--shadow-panel)] ${active ? "border-primary ring-2 ring-primary/15" : "border-border"}`}>
       <button type="button" className="text-left text-sm font-medium" onClick={onSelect}>
         {range.minPercent}–{range.maxPercent} · {range.label}
       </button>

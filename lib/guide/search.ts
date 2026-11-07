@@ -34,7 +34,7 @@ const ALIASES: { chapterId: string; sectionId: string; title: string; keywords: 
   {
     chapterId: "premiere-scorecard",
     sectionId: "publier-et-partager",
-    title: "Draft / Published",
+    title: "Brouillon / Publiée",
     keywords: ["publication", "draft", "published", "brouillon", "publiée"],
   },
 ]

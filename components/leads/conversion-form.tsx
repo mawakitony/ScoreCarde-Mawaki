@@ -10,8 +10,8 @@ export function ConversionForm({ leadId }: { leadId: string }) {
   const [error, setError] = useState("")
 
   return (
-    <section className="rounded-2xl border bg-card p-5">
-      <h2 className="font-medium">Marquer comme converti</h2>
+    <section className="rounded-[var(--radius-panel)] border border-border bg-card shadow-[var(--shadow-panel)] p-5">
+      <h2 className="font-display text-xl font-semibold tracking-tight">Marquer comme converti</h2>
       <p className="mt-1 text-sm text-muted-foreground">Conversion réelle, distincte d&apos;un clic CTA.</p>
       {error ? <p className="mt-2 text-sm text-destructive" role="alert">{error}</p> : null}
       <form className="mt-3 grid gap-2" onSubmit={async (event) => {
@@ -28,16 +28,16 @@ export function ConversionForm({ leadId }: { leadId: string }) {
         setError(result.error ?? "")
         if (!result.error) router.refresh()
       }}>
-        <select name="type" aria-label="Type de conversion" className="h-10 rounded-lg border px-2">
+        <select name="type" aria-label="Type de conversion" className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-2">
           {CONVERSION_TYPES.map((type) => <option key={type} value={type}>{type}</option>)}
         </select>
         <div className="grid grid-cols-2 gap-2">
-          <input name="value" inputMode="decimal" placeholder="Valeur" aria-label="Valeur" className="h-10 rounded-lg border px-3" />
-          <input name="currency" maxLength={3} placeholder="XOF" aria-label="Devise" className="h-10 rounded-lg border px-3" />
+          <input name="value" inputMode="decimal" placeholder="Valeur" aria-label="Valeur" className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3" />
+          <input name="currency" maxLength={3} placeholder="XOF" aria-label="Devise" className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3" />
         </div>
-        <input name="reference" placeholder="Référence" aria-label="Référence" className="h-10 rounded-lg border px-3" />
-        <input name="comment" placeholder="Commentaire" aria-label="Commentaire" className="h-10 rounded-lg border px-3" />
-        <button type="submit" className="h-10 rounded-lg bg-primary px-4 text-sm text-primary-foreground">Marquer comme converti</button>
+        <input name="reference" placeholder="Référence" aria-label="Référence" className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3" />
+        <input name="comment" placeholder="Commentaire" aria-label="Commentaire" className="h-10 rounded-[var(--radius-control)] border border-border bg-card px-3" />
+        <button type="submit" className="h-10 rounded-[var(--radius-control)] bg-primary px-4 text-sm font-semibold text-primary-foreground">Marquer comme converti</button>
       </form>
     </section>
   )

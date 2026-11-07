@@ -77,7 +77,7 @@ export function TeamMemberList({
   return (
     <div className="space-y-3">
       {notice ? <p className="text-sm" role="status">{notice}</p> : null}
-      <ul className="divide-y rounded-3xl border bg-card">
+      <ul className="divide-y divide-border rounded-2xl border border-border bg-card shadow-[var(--shadow-panel)]">
         {members.map((member) => {
           const name = member.fullName || member.email || "Membre"
           return (
@@ -86,7 +86,7 @@ export function TeamMemberList({
               id={`member-${member.userId}`}
               data-highlighted={highlightId === member.userId ? "true" : "false"}
               className={highlightId === member.userId
-                ? "flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm ring-2 ring-[#16324F]"
+                ? "flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm ring-2 ring-[#071039]"
                 : "flex flex-wrap items-center justify-between gap-3 px-5 py-3 text-sm"}
             >
               <span>
@@ -114,7 +114,7 @@ export function TeamMemberList({
               <select
                 name="role"
                 aria-label="Nouveau rôle"
-                className="h-11 w-full rounded-xl border px-3"
+                className="h-11 w-full rounded-[var(--radius-control)] border border-border bg-card px-3"
                 value={nextRole}
                 onChange={(event) => setNextRole(event.target.value)}
               >
@@ -124,7 +124,7 @@ export function TeamMemberList({
               </select>
               <p className="text-sm">Le rôle de ce membre passera de {currentLabel} à {nextLabel}.</p>
               {error ? <p className="text-sm">{error}</p> : null}
-              <button className="h-11 rounded-xl bg-[#16324F] px-4 text-sm text-[#f7f4ee] disabled:opacity-50" type="submit" disabled={pending || nextRole === editing.role}>Enregistrer</button>
+              <button className="h-11 rounded-[var(--radius-control)] bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50" type="submit" disabled={pending || nextRole === editing.role}>Enregistrer</button>
             </form>
           </DialogContent>
         ) : null}

@@ -147,7 +147,7 @@ async function executeAction(admin: Admin, organizationId: string, leadId: strin
     const { data: existing } = await admin.from("lead_tags").select("id").eq("organization_id", organizationId).ilike("name", name).maybeSingle()
     let tagId = existing?.id ?? null
     if (!tagId) {
-      const created = await admin.from("lead_tags").insert({ organization_id: organizationId, name, color: "#16324F" }).select("id").maybeSingle()
+      const created = await admin.from("lead_tags").insert({ organization_id: organizationId, name, color: "#071039" }).select("id").maybeSingle()
       tagId = created.data?.id ?? null
     }
     if (!tagId) return "tag_failed"

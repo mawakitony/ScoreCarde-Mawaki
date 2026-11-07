@@ -85,6 +85,20 @@ export async function syncPlatformAlerts(input: { deadJobs: number; workersDegra
   if (input.workersDegraded) alerts.push({ code: "cron_stale", message: "Un worker n'a pas envoyé de heartbeat récent." })
   try {
     const admin = createAdminClient()
+    const [{ count: pastDue }, { count: trialsSoon }, { count: deadEmail }, { count: suspended }] = await Promise.all([
+      admin.from("subscriptions").select("id", { count: "exact", head: true }).eq("status", "past_due"),
+      admin.from("subscriptions").select("id", { count: "exact", head: true }).eq("status", "trialing").lte("trial_end", new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()).gt("trial_end", new Date().toISOString()),
+      admin.from("email_jobs").select("id", { count: "exact", head: true }).eq("status", "dead"),
+      admin.from("organization_suspensions").select("id", { count: "exact", head: true }).is("lifted_at", null),
+    ])
+    if ((pastDue ?? 0) > 0) alerts.push({ code: "payments_past_due", message: `${pastDue} organisation(s) en past_due.` })
+    if ((trialsSoon ?? 0) > 0) alerts.push({ code: "trials_expiring_soon", message: `${trialsSoon} essai(s) expirent sous 3 jours.` })
+    if ((deadEmail ?? 0) > 0) alerts.push({ code: "email_jobs_dead", message: `${deadEmail} e-mail(s) transactionnels en échec définitif.` })
+    if ((suspended ?? 0) > 0) alerts.push({ code: "orgs_suspended", message: `${suspended} organisation(s) suspendue(s).` })
+    if (!process.env.BREVO_API_KEY?.trim() || !process.env.BREVO_SENDER_EMAIL?.trim()) {
+      alerts.push({ code: "brevo_not_configured", message: "BREVO_API_KEY / BREVO_SENDER_EMAIL absents — pas d'envoi transactionnel." })
+    }
+
     for (const alert of alerts) {
       const { data } = await admin.from("platform_alerts").select("id").eq("code", alert.code).is("resolved_at", null).maybeSingle()
       if (!data) await admin.from("platform_alerts").insert(alert)

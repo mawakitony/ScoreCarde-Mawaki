@@ -15,8 +15,8 @@ export const leadsChapter: Chapter = {
       title: "Retrouver un lead",
       keywords: ["recherche", "filtre", "liste"],
       blocks: [
-        { type: "p", text: "La page Leads liste les contacts issus des scorecards de votre organisation. La recherche porte sur le nom, l'email, le téléphone et l'entreprise." },
-        { type: "p", text: "Les filtres couvrent la scorecard, le statut, la température, le pays, le tag, la plage de résultat, un score minimum et maximum, les dates, la source, la campagne et le clic CTA. Le tri va du plus récent au nom ou au score." },
+        { type: "p", text: "La page Leads liste les contacts issus des scorecards de votre organisation. La recherche porte sur le nom, l'email, le téléphone et l'entreprise. Les onglets Actifs et Corbeille séparent la liste courante des leads supprimés." },
+        { type: "p", text: "Les filtres s'ouvrent en pastilles : scorecard, statut, température, pays, tag, résultat, source, campagne, CTA, tri, score et période. Le tri va du plus récent au nom ou au score. Effacer retire les filtres actifs." },
         { type: "roles", roles: readers },
         { type: "links", items: [{ href: "/dashboard/leads", label: "Ouvrir les leads" }] },
       ],
@@ -26,9 +26,9 @@ export const leadsChapter: Chapter = {
       title: "Lire la fiche",
       keywords: ["fiche", "note", "activité", "tag", "statut"],
       blocks: [
-        { type: "p", text: "Ouvrez un lead pour voir son identité, sa scorecard, son score et son parcours. Le statut se change à la main : Nouveau, Contacté, Qualifié, Nurturing, Converti, Perdu." },
-        { type: "p", text: "La température est calculée. Chaud : 75 % ou plus, ou un clic sur le CTA. Tiède : à partir de 40 %. Sinon Froid. Vous ne la saisissez pas." },
-        { type: "p", text: "Les tags se créent, se colorent et s'assignent. Une note interne est visible par l'équipe, pas par le visiteur. Les activités retracent ce qui s'est passé sur la fiche." },
+        { type: "p", text: "Ouvrez un lead pour voir, à gauche, les informations, le résultat, les réponses, les notes et l'historique. À droite : le statut, la température, la scorecard, les actions et l'origine marketing." },
+        { type: "p", text: "Le statut se change à la main : Nouveau, Contacté, Qualifié, Nurturing, Converti, Perdu. La température est calculée. Chaud : 75 % ou plus, ou un clic sur le CTA. Tiède : à partir de 40 %. Sinon Froid. Vous ne la saisissez pas." },
+        { type: "p", text: "Les tags se créent, se colorent et s'assignent. Une note interne est visible par l'équipe, pas par le visiteur. L'historique retrace ce qui s'est passé sur la fiche." },
         { type: "roles", roles: editors },
         { type: "callout", kind: "important", text: "Editor, Analyst et Viewer peuvent consulter. Seuls Owner et Admin modifient le statut, les tags et les notes." },
       ],

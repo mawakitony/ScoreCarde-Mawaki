@@ -30,10 +30,12 @@ const fieldLabels: Record<(typeof leadFieldKeys)[number], string> = {
 export function LeadStep({
   scorecardId,
   leadForm,
+  revision = 0,
   onChange,
 }: {
   scorecardId: string
   leadForm: BuilderLeadForm
+  revision?: number
   onChange: (leadForm: BuilderLeadForm) => void
 }) {
   const [value, setValue] = useState<LeadFormInput>(leadForm)
@@ -42,7 +44,7 @@ export function LeadStep({
     const parsed = leadFormSchema.safeParse(current)
     if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Formulaire invalide.", quiet: true }
     return saveLeadForm(scorecardId, parsed.data)
-  })
+  }, revision)
 
   function update(next: LeadFormInput) {
     setValue(next)
@@ -52,14 +54,14 @@ export function LeadStep({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-3xl">Contact</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-foreground">Contact</h2>
         <p className="mt-2 text-sm text-muted-foreground">Le formulaire est enregistré, sans collecte visiteur pour l&apos;instant.</p>
       </div>
       <div className="space-y-2">
         <Label htmlFor="lead-timing">Moment de collecte</Label>
         <select
           id="lead-timing"
-          className="h-10 w-full max-w-md rounded-lg border bg-card px-3 text-sm"
+          className="h-10 w-full max-w-md rounded-[var(--radius-control)] border border-border bg-card px-3 text-sm"
           value={value.timing}
           onChange={(event) => update({ ...value, timing: event.target.value as LeadFormInput["timing"] })}
         >
@@ -74,7 +76,7 @@ export function LeadStep({
         {leadFieldKeys.map((key) => {
           const field = value.fields[key]
           return (
-            <div key={key} className="grid gap-3 rounded-2xl border p-4 md:grid-cols-2">
+            <div key={key} className="grid gap-3 rounded-[var(--radius-panel)] border border-border p-4 md:grid-cols-2">
               <p className="font-medium md:col-span-2">{fieldLabels[key]}</p>
               <ToggleField
                 label="Activé"
@@ -102,7 +104,7 @@ export function LeadStep({
           )
         })}
       </div>
-      <div className="space-y-4 rounded-2xl border p-4">
+      <div className="space-y-4 rounded-[var(--radius-panel)] border border-border p-4">
         <ToggleField
           label="Case de consentement"
           checked={value.consentRequired}

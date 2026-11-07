@@ -17,7 +17,6 @@ const emphasis = [
   "Importer des questions",
   "Nouvelle scorecard",
   "Créer la scorecard",
-  "Create Scorecard",
   "Copier le lien",
   "Mode avancé",
   "Mode simple",
@@ -25,13 +24,18 @@ const emphasis = [
   "Maximum Result",
   "Scorecards",
   "Aperçu",
-  "Preview",
+  "Modifier",
+  "Dupliquer",
+  "Mettre en pause",
+  "Réactiver",
+  "Supprimer",
+  "Résultats",
   "Publier",
   "Partager",
   "Annuler",
   "Corbeille",
   "Restaurer",
-  "Enable",
+  "Effacer",
 ]
 
 const emphasisPattern = new RegExp(`(${emphasis.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "g")
@@ -74,20 +78,20 @@ export function GuideBlocks({ blocks }: { blocks: Block[] }) {
         }
         if (block.type === "table") {
           return (
-            <div key={index} className="max-w-full overflow-x-auto rounded-xl border">
+            <div key={index} className="max-w-full overflow-x-auto rounded-2xl border border-border">
               <table className="w-full min-w-[32rem] text-left text-sm">
-                <thead className="bg-muted/80">
+                <thead className="bg-background text-muted-foreground">
                   <tr>
                     {block.headers.map((header) => (
-                      <th key={header} className="sticky top-16 bg-muted px-3 py-2.5 font-bold text-primary">{header}</th>
+                      <th key={header} className="px-3 py-2.5 text-xs font-medium">{header}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {block.rows.map((row) => (
-                    <tr key={row[0]} className="border-t">
+                    <tr key={row[0]} className="border-t border-border">
                       {row.map((cell, cellIndex) => (
-                        <td key={cell} className="px-3 py-3 align-top leading-7">{<TableCell value={cell} lead={cellIndex === 0} />}</td>
+                        <td key={cell} className="px-3 py-3 align-top leading-7 text-foreground">{<TableCell value={cell} lead={cellIndex === 0} />}</td>
                       ))}
                     </tr>
                   ))}
@@ -100,7 +104,7 @@ export function GuideBlocks({ blocks }: { blocks: Block[] }) {
           return (
             <p key={index} className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
               {block.items.map((item) => (
-                <Link key={item.href + item.label} href={item.href} className="font-medium text-primary underline decoration-brass/70 underline-offset-4">
+                <Link key={item.href + item.label} href={item.href} className="font-medium text-[color:var(--brand-950)] dark:text-[color:var(--brand-500)] underline decoration-[color:var(--brand-300)]/70 underline-offset-4">
                   {item.label}
                 </Link>
               ))}

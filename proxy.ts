@@ -13,9 +13,11 @@ async function routeCustomDomain(request: NextRequest, session: NextResponse) {
   const host = request.headers.get("host") ?? ""
   if (isPlatformHost(host)) return withRequestId(session)
   const domain = normalizeDomain(host.split(":")[0] ?? "")
+  // Unresolvable / private hosts must never hard-404 the app (local Network URL, etc.).
+  if (!domain) return withRequestId(session)
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  if (!domain || !url || !key) return new NextResponse("Not found", { status: 404 })
+  if (!url || !key) return withRequestId(session)
   const supabase = createClient(url, key, { auth: { persistSession: false } })
   const { data, error } = await supabase.rpc("resolve_verified_domain", { p_host: domain })
   const slug = readSlug(error ? null : data)

@@ -6,6 +6,8 @@ import { inviteMember, removeMember, updateProfile } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { WS_FOCUS } from "@/lib/ui/workspace-surface"
+import { cn } from "@/lib/utils"
 
 export function ProfileForm({ fullName }: { fullName: string }) {
   const router = useRouter()
@@ -23,9 +25,16 @@ export function ProfileForm({ fullName }: { fullName: string }) {
     >
       <div className="space-y-2">
         <Label htmlFor="fullName">Nom</Label>
-        <Input id="fullName" name="fullName" defaultValue={fullName} className="h-10" />
+        <Input id="fullName" name="fullName" defaultValue={fullName} className="h-10 rounded-xl" />
       </div>
-      <Button type="submit" className="h-10">
+      <Button
+        type="submit"
+        className={cn(
+          "h-9 rounded-xl bg-[color:var(--brand-950)] text-white",
+          "dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]",
+          WS_FOCUS,
+        )}
+      >
         Enregistrer
       </Button>
     </form>
@@ -46,12 +55,30 @@ export function InviteForm() {
         }
       }}
     >
-      <Input name="email" type="email" required placeholder="email@woloyem.com" className="h-10" aria-label="Email" />
-      <select name="role" className="h-10 rounded-lg border bg-card px-2 text-sm" defaultValue="member" aria-label="Rôle">
+      <Input
+        name="email"
+        type="email"
+        required
+        placeholder="email@woloyem.com"
+        className="h-10 rounded-xl"
+        aria-label="Email"
+      />
+      <select
+        name="role"
+        className="h-10 rounded-xl border border-border bg-background px-2 text-[13px]"
+        defaultValue="member"
+        aria-label="Rôle"
+      >
         <option value="member">Membre</option>
         <option value="admin">Administrateur</option>
       </select>
-      <Button type="submit" className="h-10">
+      <Button
+        type="submit"
+        className={cn(
+          "h-10 rounded-xl bg-[color:var(--brand-950)] text-white",
+          "dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]",
+        )}
+      >
         Ajouter
       </Button>
     </form>
@@ -64,6 +91,7 @@ export function RemoveMemberButton({ userId }: { userId: string }) {
     <Button
       variant="outline"
       size="sm"
+      className="h-8 rounded-lg"
       onClick={() => {
         void removeMember(userId).then((result) => {
           if (result.error) toast.error(result.error)

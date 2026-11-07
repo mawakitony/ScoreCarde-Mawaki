@@ -142,7 +142,7 @@ export function ImportQuestionsButton({
               <a href="/api/scorecards/import-template">Télécharger le modèle Excel</a>
             </Button>
           </div>
-          <label className="block rounded-2xl border border-dashed p-6 text-sm">
+          <label className="block rounded-[var(--radius-panel)] border border-dashed border-border bg-card/50 p-6 text-sm">
             Déposez un fichier .xlsx ici
             <input
               className="mt-3 block w-full text-sm"
@@ -151,7 +151,7 @@ export function ImportQuestionsButton({
               onChange={(event) => void onFile(event.target.files?.[0], "woloyem_excel")}
             />
           </label>
-          <details className="rounded-2xl border p-4 text-sm">
+          <details className="rounded-[var(--radius-panel)] border border-border p-4 text-sm">
             <summary className="cursor-pointer">Source avancée</summary>
             <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
               <Input type="password" autoComplete="off" aria-label="Clé d'accès ScoreApp" placeholder="Clé d'accès" value={apiKey} onChange={(event) => setApiKey(event.target.value)} />

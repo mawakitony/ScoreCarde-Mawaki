@@ -29,8 +29,8 @@ export default async function BuilderPage({
   const loaded = await getBuilderBundle(membership.organization.id, id)
   if ("error" in loaded || !loaded.bundle) {
     return (
-      <section className="rounded-3xl border bg-card p-8">
-        <h1 className="font-display text-3xl">Builder indisponible</h1>
+      <section className="ws-panel p-8">
+        <h1 className="text-xl font-semibold text-foreground">Builder indisponible</h1>
         <p className="mt-3 max-w-xl text-sm text-muted-foreground">
           {loaded.error ?? "La scorecard n'a pas pu être chargée."} Vérifiez que la migration `20260921190000_builder_fields.sql` est appliquée.
         </p>

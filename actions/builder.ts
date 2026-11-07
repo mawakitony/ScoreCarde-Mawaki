@@ -10,6 +10,7 @@ import { operatorsForQuestion, type EligibilityRule } from "@/lib/scoring/eligib
 import { eligibilityFromStored } from "@/lib/scoring/parse-rules"
 import { rangeIssues, sumWeights } from "@/lib/scoring/engine"
 import { serializeLeadFields } from "@/lib/scorecard/content"
+import { packTestimonialPayload } from "@/lib/scorecard-themes/page-meta"
 import {
   eligibilityRuleSchema,
   landingSchema,
@@ -120,7 +121,18 @@ export async function saveLanding(scorecardId: string, values: LandingInput): Pr
     show_question_count: parsed.data.showQuestionCount,
     show_privacy: parsed.data.showPrivacy,
     benefits: parsed.data.benefits,
-    testimonial: parsed.data.testimonial.quote ? parsed.data.testimonial : null,
+    testimonial: packTestimonialPayload({
+      testimonial: parsed.data.testimonial,
+      meta: {
+        landingTheme: parsed.data.landingTheme,
+        highlightText: parsed.data.highlightText,
+        secondaryCtaLabel: parsed.data.secondaryCtaLabel,
+        trustLabel: parsed.data.trustLabel,
+        backgroundColor: parsed.data.backgroundColor,
+        accentColor: parsed.data.accentColor,
+        demoStats: parsed.data.demoStats,
+      },
+    }),
   }
 
   const { data: page } = await context.supabase.from("scorecard_pages").select("id").eq("scorecard_id", context.scorecardId).maybeSingle()

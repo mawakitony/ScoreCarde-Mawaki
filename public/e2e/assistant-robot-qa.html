@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LOT 18A — Robot IA QA</title>
+    <style>
+      :root {
+        --brand-950: #071039;
+        --brand-500: #2e5de6;
+        --brand-300: #6e92f2;
+        --surface-elevated: #ffffff;
+        --muted: #5e6d7e;
+        --bg: #f4f6fb;
+      }
+      body.dark {
+        --brand-950: #8ba3c7;
+        --brand-500: #d6b46a;
+        --brand-300: #d6b46a;
+        --surface-elevated: #152238;
+        --muted: #a8b4c0;
+        --bg: #0b1220;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--brand-950);
+        padding: 24px;
+      }
+      h1 { font-size: 1.1rem; margin: 0 0 8px; }
+      p.note { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+      .grid {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        max-width: 960px;
+      }
+      .card {
+        border: 1px solid color-mix(in srgb, var(--brand-500) 25%, transparent);
+        border-radius: 16px;
+        background: var(--surface-elevated);
+        padding: 16px;
+        text-align: center;
+      }
+      .card span.label {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      @keyframes ai-robot-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-3px); }
+      }
+      @keyframes ai-robot-blink {
+        0%, 42%, 48%, 100% { transform: scaleY(1); }
+        45% { transform: scaleY(0.08); }
+      }
+      @keyframes ai-robot-breathe {
+        0%, 100% { opacity: 0.55; }
+        50% { opacity: 1; }
+      }
+      @keyframes ai-robot-tilt {
+        0%, 100% { transform: rotate(0deg); }
+        50% { transform: rotate(-4deg); }
+      }
+      @keyframes ai-robot-think-spin { to { transform: rotate(360deg); } }
+      @keyframes ai-robot-particle {
+        0%, 100% { opacity: 0; transform: translateY(0) scale(0.6); }
+        40% { opacity: 0.9; transform: translateY(-6px) scale(1); }
+      }
+      @keyframes ai-robot-success-pop {
+        0% { transform: scale(1); }
+        40% { transform: scale(1.08); }
+        100% { transform: scale(1); }
+      }
+      @keyframes ai-robot-error-shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-2px); }
+        75% { transform: translateX(2px); }
+      }
+
+      .ai-robot-svg.ai-robot--idle { animation: ai-robot-float 4s ease-in-out infinite; }
+      .ai-robot-svg.ai-robot--idle .ai-robot-eye {
+        transform-box: fill-box; transform-origin: center;
+        animation: ai-robot-blink 4.2s ease-in-out infinite;
+      }
+      .ai-robot-svg.ai-robot--idle .ai-robot-antenna-tip,
+      .ai-robot-svg.ai-robot--idle .ai-robot-core { animation: ai-robot-breathe 3.2s ease-in-out infinite; }
+
+      .ai-robot-svg.ai-robot--listening { animation: ai-robot-float 5s ease-in-out infinite; }
+      .ai-robot-svg.ai-robot--listening .ai-robot-eye { filter: brightness(1.35); }
+      .ai-robot-svg.ai-robot--listening .ai-robot-antenna-tip { animation: ai-robot-breathe 1.6s ease-in-out infinite; }
+
+      .ai-robot-svg.ai-robot--thinking { animation: ai-robot-float 2.4s ease-in-out infinite; }
+      .ai-robot-svg.ai-robot--thinking .ai-robot-head {
+        transform-box: fill-box; transform-origin: center;
+        animation: ai-robot-tilt 1.6s ease-in-out infinite;
+      }
+      .ai-robot-svg.ai-robot--thinking .ai-robot-halo {
+        transform-box: fill-box; transform-origin: center;
+        animation: ai-robot-think-spin 3s linear infinite; stroke-opacity: 0.45;
+      }
+      .ai-robot-svg.ai-robot--thinking .ai-robot-particles { opacity: 1; }
+      .ai-robot-svg.ai-robot--thinking .ai-robot-particles circle {
+        animation: ai-robot-particle 1.4s ease-in-out infinite;
+      }
+
+      .ai-robot-svg.ai-robot--responding { animation: ai-robot-float 3.2s ease-in-out infinite; }
+      .ai-robot-svg.ai-robot--responding .ai-robot-mouth {
+        opacity: 0.95; animation: ai-robot-breathe 0.9s ease-in-out infinite;
+      }
+      .ai-robot-svg.ai-robot--responding .ai-robot-eye { filter: brightness(1.25); }
+
+      .ai-robot-svg.ai-robot--success { animation: ai-robot-success-pop 0.55s ease-out both; }
+      .ai-robot-svg.ai-robot--success .ai-robot-halo { stroke-opacity: 0.65; }
+
+      .ai-robot-svg.ai-robot--error { animation: ai-robot-error-shake 0.45s ease-in-out both; }
+      .ai-robot-svg.ai-robot--error .ai-robot-eye { fill: #c45c5c; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ai-robot-svg, .ai-robot-svg * {
+          animation: none !important;
+          filter: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>LOT 18A — Robot IA (6 états)</h1>
+    <p class="note">Page publique E2E — aucun appel IA, aucune écriture. CSS aligné sur app/globals.css.</p>
+    <div class="grid" id="states"></div>
+    <script>
+      const STATES = ["idle", "listening", "thinking", "responding", "success", "error"]
+      const root = document.getElementById("states")
+      function robotSvg(state) {
+        return `<div class="ai-robot" data-testid="ai-robot" data-state="${state}" data-reduced="false">
+          <svg width="72" height="72" viewBox="0 0 96 96" class="ai-robot-svg ai-robot--${state}" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g class="ai-robot-antenna">
+              <line x1="48" y1="10" x2="48" y2="18" stroke="var(--brand-500)" stroke-width="2.5" stroke-linecap="round" />
+              <circle class="ai-robot-antenna-tip" cx="48" cy="8" r="3.5" fill="var(--brand-500)" />
+            </g>
+            <circle class="ai-robot-halo" cx="48" cy="52" r="38" stroke="var(--brand-500)" stroke-opacity="0.18" stroke-width="1.5" stroke-dasharray="4 6" />
+            <g class="ai-robot-head">
+              <rect x="22" y="20" width="52" height="44" rx="16" fill="var(--surface-elevated)" stroke="var(--brand-500)" stroke-width="2" stroke-opacity="0.55" />
+              <rect x="28" y="32" width="40" height="18" rx="9" fill="var(--brand-950)" />
+              <ellipse class="ai-robot-eye" cx="38" cy="41" rx="4.2" ry="4.5" fill="var(--brand-300)" />
+              <ellipse class="ai-robot-eye" cx="58" cy="41" rx="4.2" ry="4.5" fill="var(--brand-300)" />
+              <circle cx="38.8" cy="40.5" r="1.4" fill="white" opacity="0.9" />
+              <circle cx="58.8" cy="40.5" r="1.4" fill="white" opacity="0.9" />
+              <rect class="ai-robot-mouth" x="40" y="54" width="16" height="3.5" rx="1.75" fill="var(--brand-500)" opacity="0.55" />
+            </g>
+            <g class="ai-robot-body">
+              <rect x="32" y="66" width="32" height="18" rx="8" fill="var(--brand-500)" fill-opacity="0.14" stroke="var(--brand-500)" stroke-width="1.5" stroke-opacity="0.4" />
+              <circle class="ai-robot-core" cx="48" cy="75" r="3" fill="var(--brand-500)" opacity="0.7" />
+            </g>
+            <g class="ai-robot-particles" opacity="0">
+              <circle cx="18" cy="28" r="1.8" fill="var(--brand-500)" />
+              <circle cx="78" cy="34" r="1.4" fill="var(--brand-300)" />
+              <circle cx="16" cy="56" r="1.2" fill="var(--brand-500)" />
+              <circle cx="80" cy="58" r="1.6" fill="var(--brand-300)" />
+            </g>
+          </svg>
+        </div>`
+      }
+      for (const state of STATES) {
+        const card = document.createElement("div")
+        card.className = "card"
+        card.innerHTML = robotSvg(state) + `<span class="label">${state}</span>`
+        root.appendChild(card)
+      }
+      if (new URLSearchParams(location.search).get("dark") === "1") {
+        document.body.classList.add("dark")
+      }
+    </script>
+  </body>
+</html>

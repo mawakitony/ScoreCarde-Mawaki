@@ -70,13 +70,13 @@ export function GuideContrast({ leftTitle, left, rightTitle, right }: { leftTitl
     <div className="space-y-3">
       <p className="text-xs font-bold tracking-[0.14em] text-brass uppercase">À ne pas confondre</p>
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-primary/10 bg-primary/5 p-4">
-          <p className="text-sm font-bold tracking-wide text-primary uppercase">{leftTitle}</p>
-          <p className="mt-2 text-sm leading-7">{left}</p>
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-sm font-bold tracking-wide text-[color:var(--brand-950)] dark:text-[color:var(--brand-500)] uppercase">{leftTitle}</p>
+          <p className="mt-2 text-sm leading-7 text-foreground">{left}</p>
         </div>
-        <div className="rounded-xl border border-brass/40 bg-brass/10 p-4">
+        <div className="rounded-xl border border-[color:var(--brand-300)]/40 bg-[color:var(--brand-300)]/12 p-4">
           <p className="text-sm font-bold tracking-wide text-foreground uppercase">{rightTitle}</p>
-          <p className="mt-2 text-sm leading-7">{right}</p>
+          <p className="mt-2 text-sm leading-7 text-foreground">{right}</p>
         </div>
       </div>
     </div>

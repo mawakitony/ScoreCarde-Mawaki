@@ -145,7 +145,7 @@ export async function suspendOrganization(organizationId: string, reason: string
     created_by: admin.userId,
   })
   if (error) return { error: "Suspension impossible." }
-  await audit(organization.id, admin.userId, "organization.suspended", { slug: organization.slug })
+  await audit(organization.id, admin.userId, "organization.suspended", { slug: organization.slug, reason: reason.trim().slice(0, 200) })
   revalidatePath("/platform/organizations")
   return { ok: true as const }
 }
@@ -163,7 +163,7 @@ export async function unsuspendOrganization(organizationId: string) {
 }
 
 export async function checkPlatformDomain(domainId: string) {
-  const { admin } = await actor("platform.organizations.read")
+  const { admin } = await actor("platform.organizations.manage")
   if (await recentlyAudited(admin.userId, "domain.checked")) return { error: "Veuillez patienter avant un nouveau contrôle." }
   const client = createAdminClient()
   const { data } = await client.from("custom_domains").select("id, domain, verification_token, organization_id, status").eq("id", domainId).maybeSingle()
@@ -209,5 +209,38 @@ export async function revokePlatformAdmin(userId: string) {
   const { data: woloyem } = await client.from("organizations").select("id").eq("slug", WOLOYEM_SLUG).maybeSingle()
   if (woloyem) await audit(woloyem.id, admin.userId, "platform_admin.removed", {})
   revalidatePath("/platform/admins")
+  return { ok: true as const }
+}
+
+export async function resolvePlatformAlert(alertId: string, note: string) {
+  const { admin, user } = await actor("platform.organizations.manage")
+  if (!recentAuth(user?.last_sign_in_at ?? null)) return { error: "Une authentification récente est requise." }
+  if (note.trim().length < 8) return { error: "Indiquez le motif de résolution (min. 8 caractères)." }
+  const client = createAdminClient()
+  const { data } = await client.from("platform_alerts").select("id, code").eq("id", alertId).is("resolved_at", null).maybeSingle()
+  if (!data) return { error: "Alerte introuvable ou déjà résolue." }
+  await client.from("platform_alerts").update({ resolved_at: new Date().toISOString() }).eq("id", data.id)
+  const { data: woloyem } = await client.from("organizations").select("id").eq("slug", WOLOYEM_SLUG).maybeSingle()
+  if (woloyem) await audit(woloyem.id, admin.userId, "platform_alert.resolved", { code: data.code, note: note.trim().slice(0, 200) })
+  revalidatePath("/platform/alerts")
+  revalidatePath("/platform/health")
+  return { ok: true as const }
+}
+
+export async function updatePlatformMaintenanceMessage(message: string) {
+  const { admin, user } = await actor("platform.admins.manage")
+  if (!recentAuth(user?.last_sign_in_at ?? null)) return { error: "Une authentification récente est requise." }
+  const client = createAdminClient()
+  const trimmed = message.trim()
+  const { error } = await client.from("platform_settings").upsert({
+    id: 1,
+    maintenance_message: trimmed.length ? trimmed.slice(0, 500) : null,
+    updated_at: new Date().toISOString(),
+  })
+  if (error) return { error: "Enregistrement impossible." }
+  const { data: woloyem } = await client.from("organizations").select("id").eq("slug", WOLOYEM_SLUG).maybeSingle()
+  if (woloyem) await audit(woloyem.id, admin.userId, "platform_settings.updated", { field: "maintenance_message" })
+  revalidatePath("/platform/settings")
+  revalidatePath("/dashboard")
   return { ok: true as const }
 }

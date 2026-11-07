@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import type Stripe from "stripe"
-import { applyStripeEvent, type AppliedStripeEvent, type BillingSnapshot } from "@/lib/billing/stripe-apply"
+import { applyStripeEvent, preferBillingStatus, type AppliedStripeEvent, type BillingSnapshot } from "@/lib/billing/stripe-apply"
 import { stripeClient, stripeWebhookSecret } from "@/lib/billing/stripe"
 import { createAdminClient } from "@/lib/supabase/admin"
 
@@ -39,6 +39,7 @@ async function reconcile(admin: ReturnType<typeof createAdminClient>, event: Str
   if (!applied) return
   const organizationId = await organizationForEvent(admin, applied)
   if (!organizationId) return
+  // Re-read immediately before apply to shrink the concurrent Checkout/subscription/invoice race window.
   const { data: row } = await admin.from("subscriptions").select("plan, status, billing_interval, cancel_at_period_end, current_period_start, current_period_end, trial_end, past_due_at, provider_customer_id, provider_subscription_id").eq("organization_id", organizationId).maybeSingle()
   const current: BillingSnapshot = {
     plan: row?.plan === "starter" || row?.plan === "pro" || row?.plan === "business" || row?.plan === "enterprise" || row?.plan === "internal" || row?.plan === "free" ? row.plan : "free",
@@ -54,25 +55,52 @@ async function reconcile(admin: ReturnType<typeof createAdminClient>, event: Str
   }
   if (current.plan === "internal") return
   const next = applyStripeEvent(current, { ...applied, organizationId })
-  await admin.from("subscriptions").upsert({
+  // Merge with the latest row so a concurrent Checkout/subscription event cannot be
+  // wiped by a slower invoice.paid that still holds a stale null subscription id.
+  const { data: latest } = await admin
+    .from("subscriptions")
+    .select("status, provider_customer_id, provider_subscription_id, plan, billing_interval, cancel_at_period_end, current_period_start, current_period_end, trial_end, past_due_at")
+    .eq("organization_id", organizationId)
+    .maybeSingle()
+  const latestStatus =
+    latest?.status === "trialing" ||
+    latest?.status === "active" ||
+    latest?.status === "past_due" ||
+    latest?.status === "canceled" ||
+    latest?.status === "unpaid" ||
+    latest?.status === "incomplete" ||
+    latest?.status === "paused"
+      ? latest.status
+      : current.status
+  const mergedStatus =
+    applied.type === "customer.subscription.deleted" || applied.type === "invoice.payment_failed"
+      ? next.status
+      : preferBillingStatus(latestStatus, next.status)
+  const customerId = next.customerId ?? latest?.provider_customer_id ?? current.customerId
+  const subscriptionId = next.subscriptionId ?? latest?.provider_subscription_id ?? current.subscriptionId
+  const payload: Record<string, unknown> = {
     organization_id: organizationId,
     provider: "stripe",
-    provider_customer_id: next.customerId,
-    provider_subscription_id: next.subscriptionId,
     plan: next.plan,
     billing_interval: next.billingInterval,
-    status: next.status,
-    current_period_start: next.currentPeriodStart,
-    current_period_end: next.currentPeriodEnd,
+    status: mergedStatus,
+    current_period_start: next.currentPeriodStart ?? latest?.current_period_start ?? current.currentPeriodStart,
+    current_period_end: next.currentPeriodEnd ?? latest?.current_period_end ?? current.currentPeriodEnd,
     cancel_at_period_end: next.cancelAtPeriodEnd,
     trial_end: next.trialEnd,
     past_due_at: next.pastDueAt,
-  }, { onConflict: "organization_id" })
+  }
+  // Never write null Stripe ids — concurrent invoice.paid must not wipe Checkout ids.
+  if (customerId) payload.provider_customer_id = customerId
+  if (subscriptionId) payload.provider_subscription_id = subscriptionId
+  const { error: upsertError } = await admin.from("subscriptions").upsert(payload, { onConflict: "organization_id" })
+  if (upsertError) throw upsertError
   await admin.from("audit_logs").insert({
     organization_id: organizationId,
     action: auditAction(applied.type, current.plan, next.plan),
-    metadata: { event: applied.type, plan: next.plan, status: next.status },
+    metadata: { event: applied.type, plan: next.plan, status: mergedStatus },
   })
+  const { enqueueOwnerBillingEmail } = await import("@/lib/platform/reminders")
   if (applied.type === "invoice.payment_failed") {
     await admin.from("notifications").insert({
       organization_id: organizationId,
@@ -81,20 +109,31 @@ async function reconcile(admin: ReturnType<typeof createAdminClient>, event: Str
       message: "Le dernier paiement n'a pas abouti. Une période de grâce est en cours.",
       dedupe_key: `billing:payment_failed:${applied.id}`,
     })
-    const { data: owner } = await admin.from("organization_members").select("user_id").eq("organization_id", organizationId).eq("role", "owner").limit(1).maybeSingle()
-    const { data: profile } = owner ? await admin.from("profiles").select("email").eq("id", owner.user_id).maybeSingle() : { data: null }
-    if (profile?.email) {
-      const { enqueueEmail } = await import("@/lib/email/queue")
-      const { data: organization } = await admin.from("organizations").select("name, default_language").eq("id", organizationId).maybeSingle()
-      await enqueueEmail({
-        organizationId,
-        template: "payment_failed",
-        recipient: profile.email,
-        locale: organization?.default_language === "en" ? "en" : "fr",
-        idempotencyKey: `payment_failed:${applied.id}`,
-        payload: { organizationName: organization?.name ?? "WOLOYEM Score" },
-      })
-    }
+    await enqueueOwnerBillingEmail({
+      organizationId,
+      template: "payment_failed",
+      idempotencyKey: `payment_failed:${applied.id}`,
+    })
+    await enqueueOwnerBillingEmail({
+      organizationId,
+      template: "grace_started",
+      idempotencyKey: `grace_started:${applied.id}`,
+    })
+  }
+  if (applied.type === "invoice.paid") {
+    const template = current.status === "active" ? "renewal_confirmed" : "payment_succeeded"
+    await enqueueOwnerBillingEmail({
+      organizationId,
+      template,
+      idempotencyKey: `${template}:${applied.id}`,
+    })
+  }
+  if (applied.type === "customer.subscription.deleted") {
+    await enqueueOwnerBillingEmail({
+      organizationId,
+      template: "subscription_canceled",
+      idempotencyKey: `subscription_canceled:${applied.id}`,
+    })
   }
 }
 
@@ -163,12 +202,34 @@ function toAppliedEvent(event: Stripe.Event): AppliedStripeEvent | null {
   }
   if (event.type === "invoice.paid" || event.type === "invoice.payment_failed") {
     const invoice = event.data.object
-    const subscription = invoice.parent?.subscription_details?.subscription
+    const subscriptionRef = invoice.parent?.subscription_details?.subscription
+    const legacySub = (invoice as unknown as { subscription?: string | { id: string } | null }).subscription
+    const subscriptionId =
+      typeof subscriptionRef === "string"
+        ? subscriptionRef
+        : subscriptionRef && typeof subscriptionRef === "object" && "id" in subscriptionRef
+          ? String((subscriptionRef as { id: string }).id)
+          : typeof legacySub === "string"
+            ? legacySub
+            : legacySub?.id ?? null
+    const customerId =
+      typeof invoice.customer === "string"
+        ? invoice.customer
+        : invoice.customer && typeof invoice.customer === "object" && "id" in invoice.customer
+          ? String((invoice.customer as { id: string }).id)
+          : null
     const organizationId = invoice.parent?.subscription_details?.metadata?.organization_id || invoice.metadata?.organization_id || ""
     if (event.type === "invoice.payment_failed") {
-      return { id: event.id, type: event.type, organizationId, at: new Date((invoice.created || 0) * 1000).toISOString() }
+      return {
+        id: event.id,
+        type: event.type,
+        organizationId,
+        at: new Date((invoice.created || 0) * 1000).toISOString(),
+        customerId,
+        subscriptionId,
+      }
     }
-    return { id: event.id, type: "invoice.paid", organizationId: organizationId || (typeof subscription === "string" ? "" : "") }
+    return { id: event.id, type: "invoice.paid", organizationId, customerId, subscriptionId }
   }
   return null
 }

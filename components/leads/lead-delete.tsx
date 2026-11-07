@@ -48,8 +48,8 @@ export function LeadDeleteDialog({
           {ids.map((id) => <input key={id} type="hidden" name="leadId" value={id} />)}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
           <div className="flex flex-wrap gap-2">
-            <button className="h-11 rounded-xl border px-4 text-sm" type="button" onClick={() => onOpenChange(false)}>Annuler</button>
-            <button className="h-11 rounded-xl bg-[#16324F] px-4 text-sm text-[#f7f4ee] disabled:opacity-50" type="submit" disabled={pending || ids.length === 0}>Supprimer définitivement</button>
+            <button className="h-11 rounded-[var(--radius-control)] border border-border px-4 text-sm font-semibold" type="button" onClick={() => onOpenChange(false)}>Annuler</button>
+            <button className="h-11 rounded-[var(--radius-control)] bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50" type="submit" disabled={pending || ids.length === 0}>Supprimer définitivement</button>
           </div>
         </form>
       </DialogContent>

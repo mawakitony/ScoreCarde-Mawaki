@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Copy, Pencil } from "lucide-react"
+import { Copy, Download, FileQuestion, Pencil, Plus } from "lucide-react"
 import { toast } from "sonner"
 import {
   createQuestion,
@@ -20,6 +20,8 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { QUESTION_TYPE_LABELS } from "@/lib/constants"
 import { questionTypes, type QuestionType } from "@/lib/validators/builder"
+import { WS_ENTER, WS_FOCUS, WS_ICON_CHIP } from "@/lib/ui/workspace-surface"
+import { cn } from "@/lib/utils"
 import type { BuilderOption, BuilderQuestion, BuilderQuestionCategory, BuilderRange, BuilderScoringCategory } from "@/types/builder"
 import { defaultSettings } from "@/types/builder"
 
@@ -128,15 +130,22 @@ export function QuestionsStep({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="font-display text-3xl">Questions</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Ajoutez, ordonnez et notez les questions.</p>
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 border-b border-border pb-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex items-start gap-3">
+          <span className={cn(WS_ICON_CHIP, "size-10 rounded-2xl")}>
+            <FileQuestion className="size-5" aria-hidden />
+          </span>
+          <div>
+            <h2 className="text-[1.2rem] font-semibold tracking-tight text-foreground">Questions</h2>
+            <p className="mt-1 text-[13px] text-muted-foreground">
+              {questions.length} question{questions.length > 1 ? "s" : ""} · liste à gauche, propriétés à droite
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={nextType} onValueChange={(value) => setNextType(value as QuestionType)}>
-            <SelectTrigger className="h-10 w-52" aria-label="Type de question">
+            <SelectTrigger className={cn("h-9 w-52 rounded-xl", WS_FOCUS)} aria-label="Type de question">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -147,11 +156,27 @@ export function QuestionsStep({
               ))}
             </SelectContent>
           </Select>
-          <Button type="button" className="h-10" disabled={pending} onClick={() => void addQuestion()}>
-            Ajouter une question
+          <Button
+            type="button"
+            className={cn(
+              "h-9 rounded-xl bg-[color:var(--brand-950)] text-white",
+              "dark:bg-[color:var(--brand-300)] dark:text-[color:var(--brass-ink)]",
+            )}
+            disabled={pending}
+            onClick={() => void addQuestion()}
+          >
+            <Plus className="size-3.5" aria-hidden />
+            Ajouter
           </Button>
-          <Button type="button" variant="outline" className="h-10" disabled={pending} onClick={() => void downloadWorkbook(scorecardId, setPending)}>
-            Exporter vers Excel
+          <Button
+            type="button"
+            variant="outline"
+            className="h-9 rounded-xl"
+            disabled={pending}
+            onClick={() => void downloadWorkbook(scorecardId, setPending)}
+          >
+            <Download className="size-3.5" aria-hidden />
+            Excel
           </Button>
           <ImportQuestionsButton
             scorecardId={scorecardId}
@@ -164,57 +189,103 @@ export function QuestionsStep({
         </div>
       </div>
       {questions.length === 0 ? (
-        <div className="rounded-2xl border border-dashed p-8 text-sm text-muted-foreground">
-          Aucune question. Ajoutez la première pour commencer le questionnaire.
+        <div className={cn(WS_ENTER, "rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-12 text-center")}>
+          <span className={cn(WS_ICON_CHIP, "mx-auto size-12 rounded-2xl")}>
+            <FileQuestion className="size-5" aria-hidden />
+          </span>
+          <p className="mt-4 text-sm font-semibold text-foreground">Aucune question</p>
+          <p className="mt-1 text-[13px] text-muted-foreground">Ajoutez la première pour commencer le questionnaire.</p>
         </div>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <SortableList
-            items={questions}
-            onReorder={(next) => void reorder(next)}
-            renderItem={(question, index) => {
-              const category = categories.find((item) => item.id === question.questionCategoryId)
-              const active = question.id === selectedId
-              return (
-                <article className={`rounded-2xl border p-4 ${active ? "border-primary" : "bg-card"}`}>
-                  <p className="text-xs tracking-[0.14em] text-muted-foreground uppercase">Question {index + 1}</p>
-                  <h3 className="mt-1 font-medium">{question.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {QUESTION_TYPE_LABELS[question.type]}
-                    {category ? ` · ${category.name}` : ""}
-                  </p>
-                  <div className="mt-3 flex gap-1">
-                    <Button type="button" variant="ghost" size="icon" aria-label="Modifier" onClick={() => setSelectedId(question.id)}>
-                      <Pencil />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon" aria-label="Dupliquer" onClick={() => void copyQuestion(question)}>
-                      <Copy />
-                    </Button>
-                    <ConfirmDelete
-                      title="Supprimer cette question ?"
-                      description="Elle disparaît du questionnaire. Les réponses déjà collectées restent lisibles."
-                      onConfirm={() => void removeQuestion(question.id)}
-                    />
-                  </div>
-                </article>
-              )
-            }}
-          />
-          {selected ? (
-            <QuestionEditor
-              key={selected.id}
-              scorecardId={scorecardId}
-              question={selected}
-              categories={categories}
-              scoringCategories={scoringCategories}
-              questions={questions}
-              mode={mode}
-              revision={revision}
-              onChange={(next) => onChange(questions.map((question) => (question.id === next.id ? next : question)))}
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)]">
+          <div className="min-w-0 rounded-2xl border border-border bg-muted/25 p-3" aria-label="Liste des questions">
+            <SortableList
+              items={questions}
+              onReorder={(next) => void reorder(next)}
+              renderItem={(question, index) => {
+                const category = categories.find((item) => item.id === question.questionCategoryId)
+                const active = question.id === selectedId
+                return (
+                  <article
+                    className={cn(
+                      "rounded-xl border bg-[color:var(--surface-elevated)] p-3 transition-[border-color,box-shadow,background-color]",
+                      "motion-safe:hover:border-[color:var(--brand-500)]/35",
+                      active
+                        ? "border-[color:var(--brand-500)]/50 shadow-[inset_3px_0_0_0_var(--brand-500)] ring-1 ring-[color:var(--brand-500)]/20"
+                        : "border-border",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex size-6 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold tabular-nums",
+                          active
+                            ? "bg-[color:var(--brand-500)]/20 text-[color:var(--brand-950)] dark:text-[color:var(--brand-500)]"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {index + 1}
+                      </span>
+                      <p className="truncate text-[11px] font-semibold tracking-[0.12em] text-[color:var(--brand-700)] dark:text-[color:var(--brand-300)] uppercase">
+                        {QUESTION_TYPE_LABELS[question.type]}
+                      </p>
+                    </div>
+                    <h3 className="mt-2 line-clamp-2 text-[13px] font-semibold text-foreground">{question.title}</h3>
+                    {category ? (
+                      <p className="mt-1 truncate text-[12px] text-muted-foreground">{category.name}</p>
+                    ) : null}
+                    <div className="mt-2.5 flex gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-lg"
+                        aria-label="Modifier"
+                        onClick={() => setSelectedId(question.id)}
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-8 rounded-lg"
+                        aria-label="Dupliquer"
+                        onClick={() => void copyQuestion(question)}
+                      >
+                        <Copy className="size-3.5" />
+                      </Button>
+                      <ConfirmDelete
+                        title="Supprimer cette question ?"
+                        description="Elle disparaît du questionnaire. Les réponses déjà collectées restent lisibles."
+                        onConfirm={() => void removeQuestion(question.id)}
+                      />
+                    </div>
+                  </article>
+                )
+              }}
             />
-          ) : (
-            <p className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">Sélectionnez une question.</p>
-          )}
+          </div>
+          <div
+            className="min-w-0 rounded-2xl border border-border bg-[color:var(--surface-elevated)] p-4 shadow-[var(--shadow-panel)]"
+            aria-label="Propriétés de la question"
+          >
+            {selected ? (
+              <QuestionEditor
+                key={selected.id}
+                scorecardId={scorecardId}
+                question={selected}
+                categories={categories}
+                scoringCategories={scoringCategories}
+                questions={questions}
+                mode={mode}
+                revision={revision}
+                onChange={(next) => onChange(questions.map((question) => (question.id === next.id ? next : question)))}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">Sélectionnez une question.</p>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -223,7 +294,12 @@ export function QuestionsStep({
 
 function optionLabel(questions: BuilderQuestion[], questionId: string, value: string) {
   const source = questions.find((question) => question.id === questionId)
-  const option = source?.options.find((item) => item.id === value || item.value.toLowerCase() === value.toLowerCase() || item.label.toLowerCase() === value.toLowerCase())
+  const option = source?.options.find(
+    (item) =>
+      item.id === value ||
+      item.value.toLowerCase() === value.toLowerCase() ||
+      item.label.toLowerCase() === value.toLowerCase(),
+  )
   return option?.label ?? value
 }
 
@@ -248,16 +324,36 @@ function catalogOf(
       category: question.questionCategoryId ? categoryName.get(question.questionCategoryId) ?? "" : "",
       scoringCategory: question.scoringCategoryId ? scoringName.get(question.scoringCategoryId) ?? "" : "",
       options: question.options.map((option) => ({ label: option.label, score: option.score })),
-      conditions: (question.displayRule?.conditions ?? []).map((condition) => `${question.displayRule?.mode}|${condition.questionId}|${condition.operator}|${optionLabel(questions, condition.questionId, condition.value)}`).join(";"),
+      conditions: (question.displayRule?.conditions ?? [])
+        .map(
+          (condition) =>
+            `${question.displayRule?.mode}|${condition.questionId}|${condition.operator}|${optionLabel(questions, condition.questionId, condition.value)}`,
+        )
+        .join(";"),
     })),
     categories: categories.map((category) => ({ name: category.name, weight: category.weight })),
-    scoringCategories: scoringCategories.map((category) => ({ name: category.name, weight: category.weight, maxScore: category.maxScore })),
-    ranges: ranges.map((range) => ({ id: range.id, label: range.label, min: range.minPercent, max: range.maxPercent, title: range.title })),
+    scoringCategories: scoringCategories.map((category) => ({
+      name: category.name,
+      weight: category.weight,
+      maxScore: category.maxScore,
+    })),
+    ranges: ranges.map((range) => ({
+      id: range.id,
+      label: range.label,
+      min: range.minPercent,
+      max: range.maxPercent,
+      title: range.title,
+    })),
     rules: rules.map((rule) => ({
       id: rule.id,
       action: rule.action,
       target: rule.resultRangeId,
-      conditions: rule.conditions.map((condition) => `${condition.questionId}|${condition.operator}|${optionLabel(questions, condition.questionId, condition.value)}`).join(";"),
+      conditions: rule.conditions
+        .map(
+          (condition) =>
+            `${condition.questionId}|${condition.operator}|${optionLabel(questions, condition.questionId, condition.value)}`,
+        )
+        .join(";"),
     })),
   }
 }
@@ -272,7 +368,9 @@ async function downloadWorkbook(scorecardId: string, setPending: (value: boolean
   }
   if (!("base64" in result) || !result.base64 || !result.filename) return
   const bytes = Uint8Array.from(atob(result.base64), (char) => char.charCodeAt(0))
-  const url = URL.createObjectURL(new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }))
+  const url = URL.createObjectURL(
+    new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+  )
   const link = document.createElement("a")
   link.href = url
   link.download = result.filename

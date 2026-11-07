@@ -9,7 +9,12 @@ import { inviteSchema, loginSchema, magicLinkSchema, profileSchema, signupSchema
 
 function authMessage(message: string) {
   const normalized = message.toLowerCase()
-  if (normalized.includes("rate limit")) return "Trop de tentatives pour le moment. Réessayez dans quelques minutes."
+  if (normalized.includes("rate limit")) {
+    return "Trop d'e-mails d'authentification ont été envoyés. Réessayez dans une heure, ou configurez un SMTP Auth dédié sur le projet Supabase."
+  }
+  if (normalized.includes("email address") && normalized.includes("invalid")) {
+    return "Cette adresse e-mail n'est pas acceptée. Utilisez une adresse professionnelle valide."
+  }
   if (normalized.includes("invalid login")) return "Email ou mot de passe incorrect."
   if (normalized.includes("email not confirmed")) return "Confirmez votre email avant de vous connecter."
   if (normalized.includes("already registered") || normalized.includes("already been registered")) {
@@ -19,6 +24,10 @@ function authMessage(message: string) {
     return "Ce compte n'est pas encore membre de WOLOYEM. Demandez une invitation à un administrateur."
   }
   return "La connexion a échoué. Réessayez."
+}
+
+function needsOrganizationOnboarding(message: string) {
+  return /organisation_required/i.test(message)
 }
 
 async function redirectOrigin() {
@@ -44,6 +53,8 @@ export async function signIn(formData: FormData) {
   const { error: bootError } = await supabase.rpc("bootstrap_membership")
   if (bootError) {
     if (await invitationKeepsSession(next)) redirect(next)
+    // New multi-tenant owners have a session but no org yet → onboarding, not sign-out.
+    if (needsOrganizationOnboarding(bootError.message)) redirect("/onboarding")
     await supabase.auth.signOut()
     return { error: authMessage(bootError.message) }
   }
@@ -79,6 +90,7 @@ export async function signUp(formData: FormData) {
   const { error: bootError } = await supabase.rpc("bootstrap_membership")
   if (bootError) {
     if (await invitationKeepsSession(next)) redirect(next)
+    if (needsOrganizationOnboarding(bootError.message)) redirect("/onboarding")
     await supabase.auth.signOut()
     return { error: authMessage(bootError.message) }
   }

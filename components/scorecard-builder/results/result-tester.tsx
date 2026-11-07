@@ -60,9 +60,9 @@ export function ResultTester({
   const numericRange = ranges.find((range) => range.id === numeric?.finalRange?.id) ?? null
 
   return (
-    <section className="space-y-6 rounded-2xl border p-5">
+    <section className="space-y-6 rounded-[var(--radius-panel)] border border-border p-5">
       <div>
-        <h3 className="font-display text-2xl">Tester un résultat</h3>
+        <h3 className="font-display text-2xl font-semibold tracking-tight">Tester un résultat</h3>
         <p className="mt-2 text-sm text-muted-foreground">Le test utilise le même calcul que le questionnaire public. Rien n&apos;est enregistré.</p>
       </div>
       <div className="space-y-3">
@@ -143,7 +143,7 @@ function OutcomeSummary({
   triggered: string[]
 }) {
   return (
-    <div className="grid gap-3 rounded-xl bg-muted/40 p-4 text-sm sm:grid-cols-2">
+    <div className="grid gap-3 rounded-[var(--radius-control)] bg-muted/40 p-4 text-sm sm:grid-cols-2">
       <p className="sm:col-span-2 font-medium">{title}</p>
       <p>Score calculé : {outcomePercent} %</p>
       <p>Résultat avant règle : {matched ?? "—"}</p>
@@ -177,7 +177,7 @@ function AnswerControl({
     return (
       <label className="block space-y-1 text-sm">
         <span>{question.title}</span>
-        <select className="h-10 w-full rounded-lg border bg-card px-3" value={value?.optionIds[0] ?? ""} onChange={(event) => onChange({ optionIds: event.target.value ? [event.target.value] : [] })}>
+        <select className="h-10 w-full rounded-[var(--radius-control)] border border-border bg-card px-3" value={value?.optionIds[0] ?? ""} onChange={(event) => onChange({ optionIds: event.target.value ? [event.target.value] : [] })}>
           <option value="">Aucune</option>
           {question.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
         </select>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { loadVisitorSession } from "@/lib/assessment/store"
 import { canEdit, getUser } from "@/lib/auth/session"
+import { requireWorkspaceAccess } from "@/lib/billing/workspace-access"
 import { ensureMembership } from "@/lib/data/membership"
 import { createShareToken, shareExpiry } from "@/lib/reports/share"
 import { regenerateReport } from "@/lib/reports/queue"
@@ -11,11 +12,17 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import type { Json } from "@/types/database"
 
-async function editor() {
+type ReportEditor =
+  | { ok: true; organizationId: string; userId: string }
+  | { ok: false; error: string }
+
+async function editor(): Promise<ReportEditor> {
   const membership = await ensureMembership()
   const user = await getUser()
-  if (!membership || !user || !canEdit(membership.role)) return { error: "Permission refusée." as const }
-  return { organizationId: membership.organization.id, userId: user.id }
+  if (!membership || !user || !canEdit(membership.role)) return { ok: false, error: "Permission refusée." }
+  const access = await requireWorkspaceAccess(membership.organization.id)
+  if (access) return { ok: false, error: access.error }
+  return { ok: true, organizationId: membership.organization.id, userId: user.id }
 }
 
 export async function saveReportSetup(input: {
@@ -32,7 +39,7 @@ export async function saveReportSetup(input: {
   rule?: { categoryId: string; operator: string; threshold: string; message: string }
 }) {
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   if (!z.string().uuid().safeParse(input.scorecardId).success) return { error: "Scorecard invalide." }
   const supabase = await createClient()
   const aiMode = input.aiMode === "manual" || input.aiMode === "automatic" ? input.aiMode : "disabled"
@@ -77,7 +84,7 @@ export async function saveReportSetup(input: {
 
 export async function saveOrgReportSettings(input: { brandName: string; website: string; email: string; footer: string; aiMode: string }) {
   const context = await editor()
-  if ("error" in context) return context
+  if (!context.ok) return { error: context.error }
   const aiMode = input.aiMode === "manual" || input.aiMode === "automatic" ? input.aiMode : "disabled"
   const supabase = await createClient()
   const { error } = await supabase.from("organizations").update({
@@ -96,7 +103,7 @@ export async function saveOrgReportSettings(input: { brandName: string; website:
 
 export async function createReportShare(reportId: string, days: 1 | 7 | 30) {
   const context = await editor()
-  if ("error" in context || !z.string().uuid().safeParse(reportId).success) return { error: "Permission refusée." }
+  if (!context.ok || !z.string().uuid().safeParse(reportId).success) return { error: context.ok ? "Permission refusée." : context.error }
   const admin = createAdminClient()
   const { data: report } = await admin.from("assessment_reports").select("id, report_type").eq("id", reportId).eq("organization_id", context.organizationId).maybeSingle()
   if (!report || report.report_type !== "participant") return { error: "Rapport introuvable." }
@@ -115,7 +122,7 @@ export async function createReportShare(reportId: string, days: 1 | 7 | 30) {
 
 export async function revokeReportShare(shareId: string) {
   const context = await editor()
-  if ("error" in context || !z.string().uuid().safeParse(shareId).success) return { error: "Permission refusée." }
+  if (!context.ok || !z.string().uuid().safeParse(shareId).success) return { error: context.ok ? "Permission refusée." : context.error }
   const supabase = await createClient()
   const { error } = await supabase.from("report_shares").update({ revoked_at: new Date().toISOString() }).eq("id", shareId).eq("organization_id", context.organizationId).is("revoked_at", null)
   if (error) return { error: "Le lien n'a pas pu être révoqué." }
@@ -125,7 +132,7 @@ export async function revokeReportShare(shareId: string) {
 
 export async function regenerateLeadReport(sessionId: string, reportType: "participant" | "admin") {
   const context = await editor()
-  if ("error" in context || !z.string().uuid().safeParse(sessionId).success) return { error: "Permission refusée." }
+  if (!context.ok || !z.string().uuid().safeParse(sessionId).success) return { error: context.ok ? "Permission refusée." : context.error }
   const result = await regenerateReport({ organizationId: context.organizationId, sessionId, reportType })
   if (result && "error" in result && result.error) return { error: result.error }
   revalidatePath("/dashboard/leads")
@@ -189,7 +196,7 @@ export async function shareOwnReport(slug: string, days: 1 | 7 | 30) {
 
 export async function retryReport(reportId: string) {
   const context = await editor()
-  if ("error" in context || !z.string().uuid().safeParse(reportId).success) return { error: "Permission refusée." }
+  if (!context.ok || !z.string().uuid().safeParse(reportId).success) return { error: context.ok ? "Permission refusée." : context.error }
   const admin = createAdminClient()
   const { data: report } = await admin.from("assessment_reports").select("id, status").eq("id", reportId).eq("organization_id", context.organizationId).maybeSingle()
   if (!report || report.status !== "failed") return { error: "Ce rapport ne peut pas être relancé." }

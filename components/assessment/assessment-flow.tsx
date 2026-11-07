@@ -87,7 +87,7 @@ export function AssessmentFlow({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoUrl} alt="" className="h-8 w-auto object-contain" />
           ) : (
-            <p className="text-sm tracking-[0.18em] text-[#8a7340] uppercase">WOLOYEM</p>
+            <p className="text-sm tracking-[0.18em] text-[#1A3BB0] uppercase">WOLOYEM</p>
           )}
           {phase === "questions" && total > 0 ? (
             <div className="mt-4" aria-hidden="true">
@@ -97,7 +97,10 @@ export function AssessmentFlow({
             </div>
           ) : null}
         </header>
-        <div key={phase === "questions" ? question?.id : phase} className="animate-in fade-in flex-1 duration-200">
+        <div
+          key={phase === "questions" ? question?.id : phase}
+          className="flex-1 motion-safe:animate-in motion-safe:fade-in motion-safe:duration-200"
+        >
           {phase !== "questions" && lead ? (
             <PublicLeadForm
               slug={slug}
@@ -152,7 +155,7 @@ export function AssessmentFlow({
           <div className="sticky bottom-0 flex justify-between gap-3 border-t bg-[#f7f4ee] px-5 py-4">
             <button
               type="button"
-              className="h-12 rounded-xl border bg-white px-4"
+              className="h-12 rounded-[var(--radius-control)] border bg-white px-4"
               onClick={() => {
                 setError("")
                 if (index === 0 && needsLeadFirst) setPhase("lead")
@@ -164,7 +167,7 @@ export function AssessmentFlow({
             <button
               type="button"
               disabled={pending}
-              className="h-12 flex-1 rounded-xl px-4 text-white disabled:opacity-60"
+              className="h-12 flex-1 rounded-[var(--radius-control)] px-4 text-white disabled:opacity-60"
               style={{ background: primaryColor }}
               onClick={() => void forward()}
             >

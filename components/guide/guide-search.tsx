@@ -51,13 +51,13 @@ export function GuideSearch({ onOpen }: { onOpen: (href: string) => void }) {
   }
 
   return (
-    <div ref={box} className="relative mx-auto mt-8 w-full max-w-2xl text-left">
+    <div ref={box} className="relative mt-5 w-full max-w-2xl text-left">
       <label className="sr-only" htmlFor="guide-search">Que souhaitez-vous apprendre ?</label>
       <Input
         ref={input}
         id="guide-search"
         role="combobox"
-        className="h-12 rounded-2xl px-4 text-base"
+        className="h-11 rounded-xl border-border bg-background px-4 text-base focus-visible:border-[color:var(--brand-500)] focus-visible:ring-[color:var(--brand-500)]/25"
         value={query}
         placeholder="Que souhaitez-vous apprendre ?"
         autoComplete="off"
@@ -80,7 +80,7 @@ export function GuideSearch({ onOpen }: { onOpen: (href: string) => void }) {
         }}
       />
       {shown ? (
-        <div id={listId} role="listbox" aria-label="Résultats" className="absolute z-30 mt-2 max-h-[min(24rem,50vh)] w-full overflow-y-auto rounded-2xl border bg-popover p-2 text-popover-foreground shadow-lg">
+        <div id={listId} role="listbox" aria-label="Résultats" className="absolute z-30 mt-2 max-h-[min(24rem,50vh)] w-full overflow-y-auto rounded-2xl border border-border bg-card p-2 shadow-[0_16px_40px_-24px_rgba(7,16,57,0.45)]">
           <p className="px-3 py-2 text-xs tracking-[0.14em] text-muted-foreground uppercase">Résultats</p>
           {hits.length === 0 ? (
             <div className="px-3 py-4" role="status">

@@ -1,4 +1,5 @@
 import { can } from "@/lib/auth/permissions"
+import { requireWorkspaceAccess } from "@/lib/billing/workspace-access"
 import { ensureMembership } from "@/lib/data/membership"
 import { createClient } from "@/lib/supabase/server"
 
@@ -7,6 +8,9 @@ export async function requireScorecardEditor(scorecardId: string) {
   if (!membership || !can({ role: membership.role }, "scorecard.edit")) {
     return { error: "Vous n'avez pas la permission de modifier cette scorecard." as const }
   }
+
+  const access = await requireWorkspaceAccess(membership.organization.id)
+  if (access) return { error: access.error }
 
   const supabase = await createClient()
   const { data, error } = await supabase

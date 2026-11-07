@@ -49,7 +49,7 @@ export function StartAssessmentButton({
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex h-12 items-center justify-center rounded-xl px-6 text-base text-white disabled:opacity-60"
+        className="inline-flex h-12 items-center justify-center rounded-[var(--radius-control)] px-6 text-base text-white disabled:opacity-60"
         style={{ background: color }}
       >
         {pending ? "Ouverture..." : label || "Commencer"}

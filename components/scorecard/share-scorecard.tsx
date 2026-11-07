@@ -131,13 +131,13 @@ export function ShareScorecardDialog({
             </div>
             <div className="grid gap-2">
               <Button type="button" className="h-11" onClick={() => void copyLink()}>Copier le lien</Button>
-              <a className="inline-flex h-11 items-center justify-center rounded-lg border px-3 text-sm" href={share.whatsApp} target="_blank" rel="noopener noreferrer">Partager via WhatsApp</a>
-              <a className="inline-flex h-11 items-center justify-center rounded-lg border px-3 text-sm" href={share.mailto}>Partager par email</a>
+              <a className="inline-flex h-11 items-center justify-center rounded-[var(--radius-control)] border border-border px-3 text-sm font-semibold" href={share.whatsApp} target="_blank" rel="noopener noreferrer">Partager via WhatsApp</a>
+              <a className="inline-flex h-11 items-center justify-center rounded-[var(--radius-control)] border border-border px-3 text-sm font-semibold" href={share.mailto}>Partager par email</a>
               <Button type="button" variant="outline" className="h-11" onClick={downloadQr}>Télécharger le QR Code</Button>
             </div>
             {/* The QR is a generated data URL, not a remote asset. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={share.qr} alt={`QR Code de ${share.name}`} className="mx-auto size-56 max-w-full rounded-xl border bg-white p-2" />
+            <img src={share.qr} alt={`QR Code de ${share.name}`} className="mx-auto size-56 max-w-full rounded-[var(--radius-panel)] border border-border bg-card p-3 shadow-[var(--shadow-panel)]" />
             <p aria-live="polite" className="min-h-5 text-sm">{notice}</p>
           </div>
         ) : <p aria-live="polite" className="sr-only">{notice}</p>}

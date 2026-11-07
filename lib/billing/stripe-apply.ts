@@ -30,8 +30,8 @@ export type AppliedStripeEvent =
       trialEnd: string | null
     }
   | { id: string; type: "customer.subscription.deleted"; organizationId: string; periodEnd: string | null }
-  | { id: string; type: "invoice.paid"; organizationId: string }
-  | { id: string; type: "invoice.payment_failed"; organizationId: string; at: string }
+  | { id: string; type: "invoice.paid"; organizationId: string; customerId?: string | null; subscriptionId?: string | null }
+  | { id: string; type: "invoice.payment_failed"; organizationId: string; at: string; customerId?: string | null; subscriptionId?: string | null }
 
 const STRIPE_STATUS: Record<string, SubscriptionStatus> = {
   trialing: "trialing",
@@ -51,17 +51,35 @@ export function rememberStripeEvent(seen: ReadonlySet<string>, eventId: string) 
   return { duplicate: false as const, seen: next }
 }
 
+/**
+ * Prefer the stronger subscription status when concurrent Stripe webhooks race
+ * (Checkout + subscription.created + invoice.paid often arrive within the same second).
+ */
+export function preferBillingStatus(current: SubscriptionStatus, next: SubscriptionStatus): SubscriptionStatus {
+  if (current === next) return next
+  if (next === "canceled" || next === "unpaid") return next
+  if (current === "active" && (next === "trialing" || next === "incomplete")) return current
+  if (current === "past_due" && next === "trialing") return current
+  return next
+}
+
 export function applyStripeEvent(current: BillingSnapshot, event: AppliedStripeEvent): BillingSnapshot {
   if (event.type === "checkout.session.completed") {
+    // Paid Checkout must unlock the workspace even if subscription.created raced earlier/later.
+    const paid = Boolean(event.subscriptionId)
     return {
       ...current,
       customerId: event.customerId ?? current.customerId,
       subscriptionId: event.subscriptionId ?? current.subscriptionId,
+      status: paid ? preferBillingStatus(current.status, "active") : current.status,
+      pastDueAt: paid ? null : current.pastDueAt,
+      trialEnd: paid ? null : current.trialEnd,
     }
   }
   if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
     const mapped = planFromPriceId(event.priceId)
-    const status = STRIPE_STATUS[event.stripeStatus] ?? current.status
+    const mappedStatus = STRIPE_STATUS[event.stripeStatus] ?? current.status
+    const status = preferBillingStatus(current.status, mappedStatus)
     return {
       ...current,
       plan: mapped?.plan ?? current.plan,
@@ -72,7 +90,7 @@ export function applyStripeEvent(current: BillingSnapshot, event: AppliedStripeE
       currentPeriodEnd: event.periodEnd,
       trialEnd: event.trialEnd,
       customerId: event.customerId ?? current.customerId,
-      subscriptionId: event.subscriptionId,
+      subscriptionId: event.subscriptionId ?? current.subscriptionId,
       pastDueAt: status === "past_due" ? current.pastDueAt : null,
     }
   }
@@ -80,13 +98,29 @@ export function applyStripeEvent(current: BillingSnapshot, event: AppliedStripeE
     return { ...current, status: "canceled", cancelAtPeriodEnd: true, currentPeriodEnd: event.periodEnd ?? current.currentPeriodEnd }
   }
   if (event.type === "invoice.paid") {
-    if (current.status === "past_due" || current.status === "unpaid" || current.status === "incomplete") {
-      return { ...current, status: "active", pastDueAt: null }
+    const withIds = {
+      ...current,
+      customerId: event.customerId ?? current.customerId,
+      subscriptionId: event.subscriptionId ?? current.subscriptionId,
     }
-    return current
+    if (
+      current.status === "past_due" ||
+      current.status === "unpaid" ||
+      current.status === "incomplete" ||
+      current.status === "trialing"
+    ) {
+      return { ...withIds, status: "active" as const, pastDueAt: null, trialEnd: null }
+    }
+    return withIds
   }
   if (event.type === "invoice.payment_failed") {
-    return { ...current, status: "past_due", pastDueAt: current.pastDueAt ?? event.at }
+    return {
+      ...current,
+      status: "past_due",
+      pastDueAt: current.pastDueAt ?? event.at,
+      customerId: event.customerId ?? current.customerId,
+      subscriptionId: event.subscriptionId ?? current.subscriptionId,
+    }
   }
   return current
 }

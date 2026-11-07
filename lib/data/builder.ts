@@ -1,7 +1,7 @@
 import { documentFromBundle, parseRelease, sameRelease } from "@/lib/assessment/release"
 import { parseDisplayRule } from "@/lib/assessment/visibility"
 import { capsFromStored, eligibilityFromStored } from "@/lib/scoring/parse-rules"
-import { parseBenefits, parseLeadFields, parseQuestionSettings, parseTestimonial } from "@/lib/scorecard/content"
+import { parseBenefits, parseLandingMeta, parseLeadFields, parseQuestionSettings, parseTestimonial } from "@/lib/scorecard/content"
 import { createClient } from "@/lib/supabase/server"
 import type { BuilderBundle, BuilderQuestion, BuilderRange } from "@/types/builder"
 import type { Json, Scorecard } from "@/types/database"
@@ -118,6 +118,18 @@ export async function getBuilderBundle(organizationId: string, scorecardId: stri
       showPrivacy: page?.show_privacy ?? true,
       benefits: parseBenefits(page?.benefits ?? null),
       testimonial: parseTestimonial(page?.testimonial ?? null),
+      ...(() => {
+        const meta = parseLandingMeta(page?.testimonial ?? null)
+        return {
+          landingTheme: meta.landingTheme,
+          highlightText: meta.highlightText,
+          secondaryCtaLabel: meta.secondaryCtaLabel,
+          trustLabel: meta.trustLabel,
+          backgroundColor: meta.backgroundColor,
+          accentColor: meta.accentColor,
+          demoStats: meta.demoStats,
+        }
+      })(),
     },
     questions,
     questionCategories: (categoriesQuery.data ?? []).map((category) => ({

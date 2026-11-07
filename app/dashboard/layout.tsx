@@ -1,6 +1,9 @@
+import { headers } from "next/headers"
 import { endSupportSession } from "@/actions/platform"
+import { WorkspaceLockScreen } from "@/components/billing/workspace-lock-screen"
 import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { requireUser } from "@/lib/auth/session"
+import { evaluateWorkspaceAccess, isBillingExemptPath } from "@/lib/billing/workspace-access"
 import { ensureMembership } from "@/lib/data/membership"
 import { isPlatformAdmin } from "@/lib/platform/auth"
 import { activeSuspension, readSupportSession } from "@/lib/platform/data"
@@ -42,7 +45,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <p className="mt-3 text-muted-foreground">
           {user.email} n&apos;appartient encore à aucune organisation. Créez la vôtre, ou acceptez une invitation.
         </p>
-        <a href="/onboarding" className="mt-6 inline-flex h-11 items-center rounded-xl bg-[#16324F] px-4 text-sm text-[#f7f4ee]">Créer une organisation</a>
+        <a href="/onboarding" className="mt-6 inline-flex h-11 items-center rounded-xl bg-[#071039] px-4 text-sm text-[#f7f4ee]">Créer une organisation</a>
         <form action={signOut} className="mt-6">
           <Button type="submit" variant="outline">
             Se déconnecter
@@ -58,7 +61,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6">
         <h1 className="font-display text-4xl">Espace temporairement indisponible</h1>
         <p className="mt-3 text-muted-foreground">Vos données sont conservées. Réessayez plus tard.</p>
+        <form action={signOut} className="mt-6">
+          <Button type="submit" variant="outline">
+            Se déconnecter
+          </Button>
+        </form>
       </div>
+    )
+  }
+
+  const headerStore = await headers()
+  const pathname = headerStore.get("x-pathname") ?? "/dashboard"
+  const workspaceAccess = await evaluateWorkspaceAccess(membership.organization.id)
+  const billingExempt = isBillingExemptPath(pathname)
+
+  if (workspaceAccess.locked && workspaceAccess.reason !== "platform_suspension" && !billingExempt) {
+    return (
+      <WorkspaceLockScreen
+        message={workspaceAccess.message ?? undefined}
+        showBillingCta={workspaceAccess.reason === "billing_restricted" || workspaceAccess.reason === "billing_suspended"}
+      />
     )
   }
 
@@ -77,6 +99,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       email={user.email ?? ""}
       fullName={typeof user.user_metadata.full_name === "string" ? user.user_metadata.full_name : null}
       organizationName={membership.organization.name}
+      isPlatformAdmin={Boolean(platform)}
       notifications={(notifications ?? []).map((item) => ({
         id: item.id,
         title: item.title,
@@ -86,13 +109,42 @@ export default async function DashboardLayout({ children }: { children: React.Re
       }))}
     >
       {support ? (
-        <form action={endSupportSession} className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-[#8a7340] px-4 py-3 text-sm text-[#f7f4ee]">
-          <strong>SUPPORT MODE — Viewing {support.organization.name}</strong>
-          <button type="submit">Exit support mode</button>
+        <form
+          action={endSupportSession}
+          className="mb-4 flex flex-col gap-3 rounded-xl bg-[#1A3BB0] px-4 py-3 text-sm text-[#f7f4ee] sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0 space-y-1">
+            <strong>Session support active — consultation Platform Admin uniquement</strong>
+            <p className="text-xs font-normal text-[#f7f4ee]/90">
+              Ce dashboard affiche toujours <em>votre</em> organisation ({membership.organization.name}). Les données de «{" "}
+              {support.organization.name} » ne sont pas chargées ici — ouvrez la fiche Platform Admin.
+            </p>
+            <a
+              href={`/platform/organizations/${support.organization.id}`}
+              className="inline-flex text-xs font-semibold underline underline-offset-2 hover:opacity-90"
+            >
+              Ouvrir la fiche {support.organization.name}
+            </a>
+          </div>
+          <button type="submit" className="shrink-0 rounded-lg bg-white/15 px-3 py-1.5 font-semibold hover:bg-white/25">
+            Quitter le mode support
+          </button>
         </form>
       ) : null}
-      {platform ? <a className="mb-4 inline-block text-sm underline" href="/platform">WOLOYEM Platform Admin</a> : null}
+      {platform ? (
+        <a
+          href="/platform"
+          className="mb-4 inline-flex items-center gap-2 rounded-xl bg-[color:var(--brand-950)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
+        >
+          Ouvrir WOLOYEM Platform Admin
+        </a>
+      ) : null}
       <MaintenanceBanner />
+      {workspaceAccess.locked && billingExempt ? (
+        <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
+          Votre espace métier est en pause. Activez un abonnement pour retrouver scorecards, leads et rapports.
+        </p>
+      ) : null}
       {children}
     </DashboardShell>
   )

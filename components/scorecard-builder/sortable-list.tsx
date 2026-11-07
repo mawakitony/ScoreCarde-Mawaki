@@ -17,6 +17,8 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical } from "lucide-react"
+import { WS_FOCUS } from "@/lib/ui/workspace-surface"
+import { cn } from "@/lib/utils"
 
 export function SortableList<T extends { id: string }>({
   items,
@@ -67,17 +69,25 @@ function SortableRow({ id, children }: { id: string; children: React.ReactNode }
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? "relative z-10 opacity-70" : undefined}
+      className={cn(
+        "motion-safe:transition-[opacity,box-shadow,transform] motion-safe:duration-200 motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)]",
+        isDragging && "relative z-10 scale-[1.01] opacity-95 shadow-[var(--shadow-panel)] ring-2 ring-[color:var(--brand-500)]/30",
+      )}
     >
       <div className="flex items-start gap-2">
         <button
           type="button"
-          className="mt-3 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
-          aria-label="Déplacer"
+          className={cn(
+            "mt-3 inline-flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground",
+            "transition-colors duration-150 hover:bg-muted hover:text-foreground",
+            "motion-safe:active:scale-[0.96]",
+            WS_FOCUS,
+          )}
+          aria-label="Réorganiser"
           {...attributes}
           {...listeners}
         >
-          <GripVertical />
+          <GripVertical className="size-4" aria-hidden />
         </button>
         <div className="min-w-0 flex-1">{children}</div>
       </div>

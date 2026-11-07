@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { Logo } from "@/components/brand/logo"
 import { LoginForm } from "@/components/auth/auth-forms"
+import { AuthStage } from "@/components/auth/auth-stage"
+import { ScoreMotionShowcase } from "@/components/auth/score-motion-showcase"
 import { isSupabaseConfigured, safeNextPath } from "@/lib/env"
 
 export const metadata = { title: "Connexion", robots: { index: false, follow: false } }
@@ -19,41 +21,47 @@ export default async function LoginPage({
   const params = await searchParams
   const next = safeNextPath(params.next)
   const message = params.error ? errors[params.error] : null
+  const signupHref = next.startsWith("/invite/") ? `/signup?next=${encodeURIComponent(next)}` : "/signup"
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      <section className="hidden bg-primary px-12 py-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <Logo tone="light" />
-        <div>
-          <p className="text-sm tracking-[0.2em] text-brass uppercase">Administration</p>
-          <h1 className="font-display mt-4 text-5xl leading-tight">Pilotez vos diagnostics.</h1>
-          <p className="mt-4 max-w-md text-primary-foreground/80">
-            Scorecards, leads et lectures de performance pour les formations WOLOYEM.
-          </p>
+    <AuthStage
+      mobileMotion={
+        <div className="-mx-5 bg-[linear-gradient(135deg,#071039_0%,#1A3BB0_48%,#2E5DE6_100%)] px-5 py-5 sm:-mx-8 sm:px-8 sm:py-6">
+          <ScoreMotionShowcase compact />
         </div>
-        <p className="text-sm text-primary-foreground/70">Accès réservé à l&apos;équipe WOLOYEM.</p>
-      </section>
-      <section className="flex items-center px-6 py-12">
-        <div className="mx-auto w-full max-w-md">
-          <div className="mb-8 lg:hidden">
-            <Logo />
-          </div>
-          <h2 className="font-display text-4xl">Connexion</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Email et mot de passe, ou lien magique. Google pourra être ajouté plus tard.
-          </p>
-          {message ? <p className="mt-4 rounded-xl bg-secondary px-4 py-3 text-sm">{message}</p> : null}
-          <div className="mt-8">
-            <LoginForm next={next} configured={isSupabaseConfigured()} />
-          </div>
-          <p className="mt-6 text-sm text-muted-foreground">
-            Pas encore de compte ?{" "}
-            <Link href={next.startsWith("/invite/") ? `/signup?next=${encodeURIComponent(next)}` : "/signup"} className="text-foreground underline">
-              Créer un accès
-            </Link>
-          </p>
-        </div>
-      </section>
-    </div>
+      }
+      footer={
+        <p className="text-center text-[14px] text-muted-foreground">
+          Pas encore de compte ?{" "}
+          <Link
+            href={signupHref}
+            className="font-semibold text-[#071039] underline-offset-4 transition-colors hover:text-[#2E5DE6] hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[#2E5DE6]/35 focus-visible:outline-none dark:text-[#AFC5F8] dark:hover:text-white"
+          >
+            Créer un accès
+          </Link>
+        </p>
+      }
+    >
+      <div className="flex items-center">
+        <Logo />
+      </div>
+
+      <h1 className="mt-6 text-[2rem] leading-[1.2] font-semibold tracking-tight text-[#071039] sm:mt-7 sm:text-[2.15rem] dark:text-[#F5F7FA]">
+        Heureux de vous retrouver.
+      </h1>
+      <p className="mt-2.5 max-w-[38ch] text-[15px] leading-relaxed font-normal text-[#5E6D7E] dark:text-[#A8B4C0]">
+        Connectez-vous pour retrouver vos scorecards, vos leads et vos analyses.
+      </p>
+
+      {message ? (
+        <p className="mt-5 rounded-xl border border-border bg-muted/70 px-4 py-3 text-sm text-foreground" role="alert">
+          {message}
+        </p>
+      ) : null}
+
+      <div className="mt-7 sm:mt-8">
+        <LoginForm next={next} configured={isSupabaseConfigured()} />
+      </div>
+    </AuthStage>
   )
 }

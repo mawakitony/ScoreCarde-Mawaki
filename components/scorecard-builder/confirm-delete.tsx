@@ -28,8 +28,8 @@ export function ConfirmDelete({
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button type="button" variant="ghost" size="icon" aria-label={label}>
-          <Trash2 />
+        <Button type="button" variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:text-destructive" aria-label={label}>
+          <Trash2 className="size-3.5" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

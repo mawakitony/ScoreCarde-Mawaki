@@ -76,9 +76,9 @@ export function RulesEditor({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border p-5">
+    <section className="space-y-4 rounded-[var(--radius-panel)] border border-border p-5">
       <div>
-        <h3 className="font-display text-2xl">Règles obligatoires</h3>
+        <h3 className="font-display text-2xl font-semibold tracking-tight">Règles obligatoires</h3>
         <p className="mt-2 text-sm text-muted-foreground">
           Une règle peut remplacer le résultat du score. Le pourcentage calculé reste inchangé. Une règle plus restrictive l&apos;emporte toujours.
         </p>
@@ -91,7 +91,7 @@ export function RulesEditor({
         </p>
       ) : null}
       {draft.map((rule, index) => (
-        <article key={rule.id} className="space-y-3 rounded-xl bg-muted/40 p-4">
+        <article key={rule.id} className="space-y-3 rounded-[var(--radius-control)] bg-muted/40 p-4">
           <p className="text-sm font-medium">Règle {index + 1}</p>
           {rule.conditions.map((condition, conditionIndex) => {
             const question = questions.find((item) => item.id === condition.questionId)
@@ -102,7 +102,7 @@ export function RulesEditor({
                 <label className="space-y-1 text-sm">
                   <span className="text-muted-foreground">Question</span>
                   <select
-                    className="h-10 w-full rounded-lg border bg-card px-3"
+                    className="h-10 w-full rounded-[var(--radius-control)] border border-border bg-card px-3"
                     value={condition.questionId}
                     onChange={(event) => {
                       const nextQuestion = questions.find((item) => item.id === event.target.value)
@@ -119,7 +119,7 @@ export function RulesEditor({
                 <label className="space-y-1 text-sm">
                   <span className="text-muted-foreground">Opérateur</span>
                   <select
-                    className="h-10 w-full rounded-lg border bg-card px-3"
+                    className="h-10 w-full rounded-[var(--radius-control)] border border-border bg-card px-3"
                     value={condition.operator}
                     onChange={(event) => {
                       const conditions = rule.conditions.map((item, itemIndex) => itemIndex === conditionIndex ? { ...item, operator: event.target.value as EligibilityOperator } : item)
@@ -159,7 +159,7 @@ export function RulesEditor({
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">Action</span>
               <select
-                className="h-10 w-full rounded-lg border bg-card px-3"
+                className="h-10 w-full rounded-[var(--radius-control)] border border-border bg-card px-3"
                 value={rule.action}
                 onChange={(event) => updateRule(rule.id, { ...rule, action: event.target.value === "max_result" ? "max_result" : "force_result" })}
               >
@@ -170,7 +170,7 @@ export function RulesEditor({
             <label className="space-y-1 text-sm">
               <span className="text-muted-foreground">Résultat</span>
               <select
-                className="h-10 w-full rounded-lg border bg-card px-3"
+                className="h-10 w-full rounded-[var(--radius-control)] border border-border bg-card px-3"
                 value={rule.resultRangeId}
                 onChange={(event) => updateRule(rule.id, { ...rule, resultRangeId: event.target.value })}
               >
@@ -207,7 +207,7 @@ export function RulesEditor({
           Enregistrer les règles
         </Button>
       </div>
-      <div className="rounded-xl border p-4">
+      <div className="rounded-[var(--radius-control)] border border-border p-4">
         <h4 className="font-medium">Plafond du score</h4>
         <p className="mt-1 text-sm text-muted-foreground">Réduit le pourcentage officiel. Contrairement aux règles de résultat, ce plafond change le score affiché.</p>
         <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -237,7 +237,7 @@ function ValueField({
     return (
       <label className="space-y-1 text-sm">
         <span className="text-muted-foreground">Valeur</span>
-        <select className="h-10 w-full rounded-lg border bg-card px-3" value={value} onChange={(event) => onChange(event.target.value)}>
+        <select className="h-10 w-full rounded-[var(--radius-control)] border border-border bg-card px-3" value={value} onChange={(event) => onChange(event.target.value)}>
           <option value="">Choisir</option>
           {question.options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
         </select>

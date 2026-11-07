@@ -60,7 +60,7 @@ function QuestionInput({
         <label className="block text-sm">
           Réponse
           <select
-            className="mt-2 h-11 w-full rounded-xl border bg-white px-3"
+            className="mt-2 h-11 w-full rounded-[var(--radius-control)] border bg-white px-3"
             value={answer.optionIds[0] ?? ""}
             onChange={(event) => onChange({ ...answer, optionIds: event.target.value ? [event.target.value] : [] })}
           >
@@ -84,7 +84,7 @@ function QuestionInput({
               key={option.id}
               type="button"
               aria-pressed={selected}
-              className="rounded-2xl border bg-white px-4 py-3 text-left"
+              className="rounded-[var(--radius-panel)] border bg-white px-4 py-3 text-left"
               style={selected ? { borderColor: primaryColor, boxShadow: `inset 0 0 0 1px ${primaryColor}` } : undefined}
               onClick={() => onChange({ ...answer, optionIds: [option.id] })}
             >
@@ -106,7 +106,7 @@ function QuestionInput({
               key={option.id}
               type="button"
               aria-pressed={selected}
-              className="rounded-2xl border bg-white px-4 py-3 text-left"
+              className="rounded-[var(--radius-panel)] border bg-white px-4 py-3 text-left"
               style={selected ? { borderColor: primaryColor, boxShadow: `inset 0 0 0 1px ${primaryColor}` } : undefined}
               onClick={() => {
                 const optionIds = selected
@@ -137,7 +137,7 @@ function QuestionInput({
               key={value}
               type="button"
               aria-pressed={selected}
-              className="size-11 rounded-xl border bg-white"
+              className="size-11 rounded-[var(--radius-control)] border bg-white"
               style={selected ? { background: primaryColor, color: "white", borderColor: primaryColor } : undefined}
               onClick={() => onChange({ ...answer, scaleValue: value })}
             >
@@ -154,7 +154,7 @@ function QuestionInput({
       <label className="block text-sm">
         Réponse
         <textarea
-          className="mt-2 min-h-32 w-full rounded-xl border bg-white px-3 py-2"
+          className="mt-2 min-h-32 w-full rounded-[var(--radius-control)] border bg-white px-3 py-2"
           value={answer.text}
           onChange={(event) => onChange({ ...answer, text: event.target.value })}
         />
@@ -167,7 +167,7 @@ function QuestionInput({
       <label className="block text-sm">
         Pays
         <select
-          className="mt-2 h-11 w-full rounded-xl border bg-white px-3"
+          className="mt-2 h-11 w-full rounded-[var(--radius-control)] border bg-white px-3"
           value={answer.text}
           onChange={(event) => onChange({ ...answer, text: event.target.value })}
         >
@@ -188,7 +188,7 @@ function QuestionInput({
     <label className="block text-sm">
       Réponse
       <input
-        className="mt-2 h-11 w-full rounded-xl border bg-white px-3"
+        className="mt-2 h-11 w-full rounded-[var(--radius-control)] border bg-white px-3"
         type={inputType}
         value={answer.text}
         onChange={(event) => onChange({ ...answer, text: event.target.value })}

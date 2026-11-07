@@ -79,6 +79,8 @@ export function parseTestimonial(value: Json | null): BuilderTestimonial {
   }
 }
 
+export { parseLandingMeta, packTestimonialPayload, defaultLandingMeta } from "@/lib/scorecard-themes/page-meta"
+
 export function parseQuestionSettings(value: Json | null, type: string): QuestionSettings {
   const base = type === "scale_10"
     ? { scaleFrom: 1, scaleTo: 10, scoreFrom: 0, scoreTo: 100 }

@@ -136,11 +136,15 @@ function SearchField({
                 aria-selected={selected}
                 data-search-option=""
                 data-active={selected ? "true" : "false"}
-                className={selected ? "flex w-full flex-col rounded-lg bg-muted px-3 py-2 text-left" : "flex w-full flex-col rounded-lg px-3 py-2 text-left hover:bg-muted"}
+                className={
+                  selected
+                    ? "flex w-full flex-col rounded-lg bg-[color:var(--brand-500)]/10 px-3 py-2 text-left ring-1 ring-[color:var(--brand-500)]/20"
+                    : "flex w-full flex-col rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
+                }
                 onMouseEnter={() => setIndex(position)}
                 onClick={() => openHit(hit)}
               >
-                <span className="text-sm">{hit.title}</span>
+                <span className="text-sm font-medium text-foreground">{hit.title}</span>
                 {hit.meta ? <span className="text-xs text-muted-foreground">{hit.meta}</span> : null}
               </button>
             )
@@ -169,7 +173,7 @@ function SearchField({
           onFocus={() => {
             if (term.length >= SEARCH_MIN_LENGTH) setOpen(true)
           }}
-          className="h-10 w-full rounded-xl border bg-card pr-3 pl-9 text-sm outline-none focus:border-ring focus:ring-3 focus:ring-ring/40"
+          className="h-9 w-full rounded-[var(--radius-control)] border border-border bg-[color:var(--surface)] pr-3 pl-9 text-[13px] outline-none transition-[border-color,box-shadow] focus:border-[color:var(--brand-500)] focus:ring-2 focus:ring-[color:var(--brand-500)]/25"
         />
       </div>
       {showPanel ? (
@@ -178,9 +182,11 @@ function SearchField({
           role="listbox"
           aria-label="Résultats"
           data-search-panel=""
-          className={layout === "dropdown"
-            ? "absolute top-12 z-30 max-h-80 w-full max-w-md overflow-auto rounded-xl border bg-card p-1 shadow-lg"
-            : "mt-3 min-h-0 flex-1 overflow-auto rounded-xl border bg-card p-1"}
+          className={
+            layout === "dropdown"
+              ? "absolute top-11 z-30 max-h-80 w-full max-w-md overflow-auto rounded-xl border border-border bg-[color:var(--surface-elevated)] p-1 shadow-[var(--shadow-panel)]"
+              : "mt-3 min-h-0 flex-1 overflow-auto rounded-xl border border-border bg-[color:var(--surface)] p-1"
+          }
         >
           {body}
         </div>
