@@ -3,6 +3,7 @@ import { Logo } from "@/components/brand/logo"
 import { LoginForm } from "@/components/auth/auth-forms"
 import { AuthStage } from "@/components/auth/auth-stage"
 import { ScoreMotionShowcase } from "@/components/auth/score-motion-showcase"
+import { PASSWORD_UPDATED_LOGIN_MESSAGE } from "@/lib/auth/password-reset"
 import { isSupabaseConfigured, safeNextPath } from "@/lib/env"
 
 export const metadata = { title: "Connexion", robots: { index: false, follow: false } }
@@ -13,14 +14,19 @@ const errors: Record<string, string> = {
   auth: "Le lien de connexion n'est plus valable. Demandez-en un nouveau.",
 }
 
+const notices: Record<string, string> = {
+  password_updated: PASSWORD_UPDATED_LOGIN_MESSAGE,
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>
+  searchParams: Promise<{ next?: string; error?: string; message?: string }>
 }) {
   const params = await searchParams
   const next = safeNextPath(params.next)
   const message = params.error ? errors[params.error] : null
+  const notice = params.message ? notices[params.message] : null
   const signupHref = next.startsWith("/invite/") ? `/signup?next=${encodeURIComponent(next)}` : "/signup"
 
   return (
@@ -56,6 +62,11 @@ export default async function LoginPage({
       {message ? (
         <p className="mt-5 rounded-xl border border-border bg-muted/70 px-4 py-3 text-sm text-foreground" role="alert">
           {message}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="mt-5 rounded-xl border border-border bg-muted/70 px-4 py-3 text-sm text-foreground" role="status">
+          {notice}
         </p>
       ) : null}
 

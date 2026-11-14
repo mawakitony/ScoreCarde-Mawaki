@@ -91,6 +91,7 @@ export function safeNextPath(value: string | null | undefined) {
     return "/dashboard"
   }
   if (/^\/invite\/[A-Za-z0-9_-]{20,}$/.test(value)) return value
+  if (value === "/reset-password" || value.startsWith("/reset-password?")) return "/reset-password"
   if (value.startsWith("/dashboard")) return value
   return "/dashboard"
 }

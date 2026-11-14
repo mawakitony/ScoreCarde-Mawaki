@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useFormStatus } from "react-dom"
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
 import { toast } from "sonner"
@@ -57,6 +58,14 @@ export function LoginForm({ next, configured }: { next: string; configured: bool
         >
           <EmailField />
           <PasswordField autoComplete="current-password" />
+          <p className="-mt-1 text-right">
+            <Link
+              href="/forgot-password"
+              className="text-[13px] font-medium text-[#2E5DE6] underline-offset-4 transition-colors hover:text-[#1A3BB0] hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-[#2E5DE6]/35 focus-visible:outline-none dark:text-[#6E92F2] dark:hover:text-[#AFC5F8]"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </p>
           <Submit label="Se connecter" withArrow />
         </AuthForm>
       </TabsContent>

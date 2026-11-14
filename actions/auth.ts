@@ -4,8 +4,20 @@ import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { getAppUrl, safeNextPath } from "@/lib/env"
 import { invitationKeepsSession } from "@/lib/auth/invite-session"
+import {
+  PASSWORD_RESET_NEUTRAL_MESSAGE,
+  passwordResetRateLimitMessage,
+} from "@/lib/auth/password-reset"
 import { createClient } from "@/lib/supabase/server"
-import { inviteSchema, loginSchema, magicLinkSchema, profileSchema, signupSchema } from "@/lib/validators/auth"
+import {
+  forgotPasswordSchema,
+  inviteSchema,
+  loginSchema,
+  magicLinkSchema,
+  profileSchema,
+  resetPasswordSchema,
+  signupSchema,
+} from "@/lib/validators/auth"
 
 function authMessage(message: string) {
   const normalized = message.toLowerCase()
@@ -112,6 +124,84 @@ export async function sendMagicLink(formData: FormData) {
 
   if (error) return { error: "Le lien magique n'a pas pu être envoyé." }
   return { message: "Lien envoyé. Consultez votre boîte email." }
+}
+
+/** Always returns the same neutral message (no account-existence leak). */
+export async function requestPasswordReset(formData: FormData) {
+  const parsed = forgotPasswordSchema.safeParse({ email: formData.get("email") })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Email invalide." }
+
+  const appUrl = getAppUrl()
+  const supabase = await createClient()
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${appUrl}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
+  })
+
+  if (error) {
+    const rate = passwordResetRateLimitMessage(error.message)
+    if (rate) return { error: rate, rateLimited: true as const }
+    // Still neutral — do not reveal whether the address exists or SMTP failed in detail.
+    return { message: PASSWORD_RESET_NEUTRAL_MESSAGE }
+  }
+
+  return { message: PASSWORD_RESET_NEUTRAL_MESSAGE }
+}
+
+export async function updatePasswordFromRecovery(formData: FormData) {
+  const parsed = resetPasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword"),
+    mfaCode: formData.get("mfaCode") || undefined,
+  })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." }
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { error: "Session de récupération invalide ou expirée.", expired: true as const }
+
+  const aal = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  const needsAal2 = aal.data?.currentLevel !== "aal2" && aal.data?.nextLevel === "aal2"
+  if (needsAal2) {
+    const code = parsed.data.mfaCode?.trim() ?? ""
+    if (!/^\d{6}$/.test(code)) {
+      return { error: "Saisissez le code MFA à 6 chiffres pour confirmer.", mfaRequired: true as const }
+    }
+    const factors = await supabase.auth.mfa.listFactors()
+    const factorId = factors.data?.totp?.[0]?.id
+    if (!factorId) return { error: "Aucun facteur MFA trouvé sur ce compte.", mfaRequired: true as const }
+    const challenge = await supabase.auth.mfa.challenge({ factorId })
+    if (challenge.error || !challenge.data) {
+      return { error: "Impossible de vérifier le MFA. Réessayez.", mfaRequired: true as const }
+    }
+    const verified = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.data.id,
+      code,
+    })
+    if (verified.error) return { error: "Code MFA incorrect.", mfaRequired: true as const }
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
+  if (error) {
+    const msg = error.message.toLowerCase()
+    if (msg.includes("aal") || msg.includes("mfa") || msg.includes("assurance")) {
+      return { error: "Saisissez le code MFA à 6 chiffres pour confirmer.", mfaRequired: true as const }
+    }
+    if (msg.includes("same password") || msg.includes("should be different")) {
+      return { error: "Choisissez un mot de passe différent de l'ancien." }
+    }
+    return { error: "Le mot de passe n'a pas pu être mis à jour. Réessayez." }
+  }
+
+  try {
+    await supabase.auth.signOut({ scope: "others" })
+  } catch {
+    // Optional — ignore if provider rejects scope.
+  }
+  await supabase.auth.signOut({ scope: "local" })
+  redirect("/login?message=password_updated")
 }
 
 export async function signOut() {

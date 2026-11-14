@@ -7,6 +7,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname
   const isDashboard = path.startsWith("/dashboard")
   const isAuthPage = path === "/login" || path === "/signup"
+  const isResetPassword = path === "/reset-password"
 
   if (!isSupabaseConfigured()) {
     if (isDashboard) {
@@ -48,6 +49,14 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = "/login"
     url.searchParams.set("next", path)
+    return NextResponse.redirect(url)
+  }
+
+  // Recovery session must stay on /reset-password (do not bounce to dashboard).
+  if (!user && isResetPassword) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/forgot-password"
+    url.searchParams.set("error", "expired")
     return NextResponse.redirect(url)
   }
 
