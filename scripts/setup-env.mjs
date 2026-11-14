@@ -1,7 +1,10 @@
 /**
  * Interactive staging env setup (local + optional Vercel).
- * Never logs secret values. Run: node scripts/setup-env.mjs
- * Self-test only: node scripts/setup-env.mjs --self-test
+ * Never logs secret values.
+ *
+ *   node scripts/setup-env.mjs
+ *   node scripts/setup-env.mjs --vercel-only
+ *   node scripts/setup-env.mjs --self-test
  */
 import { createInterface } from "node:readline"
 import { randomBytes } from "node:crypto"
@@ -25,6 +28,14 @@ const PROJECT = "score-card-mawaki"
 const SCOPE = "mawakitonys-projects"
 const LOCAL_APP_URL = "http://localhost:3000"
 const PROD_APP_URL = "https://score-card-mawaki.vercel.app"
+
+/** Only these may be Vercel Secret. NEXT_PUBLIC_* must always be plain/config. */
+const VERCEL_SENSITIVE_NAMES = new Set([
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "INTEGRATIONS_SECRET",
+  "SMTP_PASSWORD",
+  "E2E_SUPABASE_SERVICE_ROLE_KEY",
+])
 
 const NON_SECRET_LOCAL = {
   NEXT_PUBLIC_SUPABASE_URL: ALLOWED_SUPABASE_URL,
@@ -128,6 +139,60 @@ export function applyLocalEnvFile(input, { extras = {}, remove = [] } = {}) {
   return text
 }
 
+/** Vercel: NEXT_PUBLIC_* never Secret; only allowlisted names are sensitive. */
+export function isVercelSensitive(name) {
+  if (String(name).startsWith("NEXT_PUBLIC_")) return false
+  return VERCEL_SENSITIVE_NAMES.has(name)
+}
+
+export function readEnvFileValue(filePath, key) {
+  if (!existsSync(filePath)) return null
+  const text = readFileSync(filePath, "utf8")
+  for (const line of text.split(/\r?\n/)) {
+    if (!line || line.startsWith("#")) continue
+    const i = line.indexOf("=")
+    if (i <= 0) continue
+    if (line.slice(0, i).trim() !== key) continue
+    let value = line.slice(i + 1).trim()
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1)
+    }
+    return value
+  }
+  return null
+}
+
+export function buildVercelVarSets(secrets) {
+  const prodVars = {
+    NEXT_PUBLIC_SUPABASE_URL: ALLOWED_SUPABASE_URL,
+    NEXT_PUBLIC_APP_URL: PROD_APP_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: secrets.publishable,
+    SUPABASE_SERVICE_ROLE_KEY: secrets.serviceProduction,
+    INTEGRATIONS_SECRET: secrets.integrations,
+    EMAIL_PROVIDER: "smtp",
+    SMTP_HOST: "smtp.gmail.com",
+    SMTP_PORT: "587",
+    SMTP_USER: "assikimawaki@gmail.com",
+    EMAIL_FROM: "assikimawaki@gmail.com",
+    EMAIL_FROM_NAME: "WOLOYEM Score",
+    EMAIL_DAILY_LIMIT: "400",
+    EMAIL_RATE_PER_MINUTE: "5",
+    SMTP_PASSWORD: secrets.smtpPassword,
+  }
+
+  const previewVars = {
+    ...prodVars,
+    SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
+    E2E_SUPABASE_ANON_KEY: secrets.publishable,
+    E2E_SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
+  }
+
+  return { prodVars, previewVars }
+}
+
 function say(msg) {
   process.stdout.write(`${msg}\n`)
 }
@@ -205,7 +270,6 @@ function runCheckEnv() {
   const out = `${result.stdout || ""}${result.stderr || ""}`
   for (const line of out.split(/\r?\n/)) {
     if (!line) continue
-    // Formats / status only — skip anything that could look like a value dump.
     if (/=[^\s]{20,}/.test(line) && !/FORMAT|STATUS|LENGTH|PROVIDER|HOST|PORT|database|ALLOWED_/.test(line)) {
       continue
     }
@@ -252,8 +316,28 @@ async function vercelRm(name, environment) {
     "--project",
     PROJECT,
   ])
-  // Ignore missing variable.
-  say(`  rm ${name} ${environment} → ${result.code === 0 ? "ok" : "absent_or_skipped"}`)
+  // Missing variable is fine (idempotent re-run).
+  return result.code === 0 ? "removed" : "absent_or_skipped"
+}
+
+/**
+ * Idempotent add: rm (ignored if missing) then add with --force.
+ * Never throws — returns { ok, kind, detail }.
+ */
+export async function upsertVercelEnv(name, environment, value, { vercelAddFn, vercelRmFn } = {}) {
+  const sensitive = isVercelSensitive(name)
+  const rm = vercelRmFn || vercelRm
+  const add = vercelAddFn || vercelAdd
+  await rm(name, environment)
+  const added = await add(name, environment, value, { sensitive })
+  return {
+    name,
+    environment,
+    sensitive,
+    kind: sensitive ? "secret" : "config",
+    ok: added.ok,
+    detail: added.detail || null,
+  }
 }
 
 async function vercelAdd(name, environment, value, { sensitive = true } = {}) {
@@ -272,69 +356,53 @@ async function vercelAdd(name, environment, value, { sensitive = true } = {}) {
   ]
   if (sensitive) args.push("--sensitive")
   else args.push("--no-sensitive")
-  const result = await vercelCmd(args, { input: value })
-  if (result.code !== 0) {
-    const detail = `${result.stderr || result.stdout || ""}`.slice(0, 200).replace(/\s+/g, " ")
-    throw new Error(`vercel env add failed for ${name} (${environment}): ${detail}`)
+  try {
+    const result = await vercelCmd(args, { input: value })
+    if (result.code !== 0) {
+      const detail = `${result.stderr || result.stdout || ""}`.slice(0, 200).replace(/\s+/g, " ").trim()
+      return { ok: false, detail: detail || `exit_${result.code}` }
+    }
+    return { ok: true, detail: null }
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message.slice(0, 160) : "spawn_failed" }
   }
-  say(`  add ${name} ${environment} → ok (${sensitive ? "secret" : "config"})`)
+}
+
+function printVercelSummary(rows) {
+  say("")
+  say("--- Récapitulatif Vercel (OK/FAIL) ---")
+  let fails = 0
+  for (const row of rows) {
+    const mark = row.ok ? "OK" : "FAIL"
+    if (!row.ok) fails += 1
+    const extra = row.ok ? row.kind : `${row.kind}; ${row.detail || "error"}`
+    say(`  ${mark}  ${row.environment}  ${row.name}  (${extra})`)
+  }
+  say(fails ? `Résultat: ${fails} échec(s) — relance possible (idempotent).` : "Résultat: toutes les variables OK.")
+  return fails
 }
 
 async function syncVercel(secrets) {
-  const prodService = await askUntil(
-    "Secret key Production (sb_secret_, saisie masquée) : ",
-    isSecretKey,
-    "Format invalide — doit commencer par sb_secret_. Réessaie.",
-  )
-
-  const prodVars = {
-    NEXT_PUBLIC_SUPABASE_URL: ALLOWED_SUPABASE_URL,
-    NEXT_PUBLIC_APP_URL: PROD_APP_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: secrets.publishable,
-    SUPABASE_SERVICE_ROLE_KEY: prodService,
-    INTEGRATIONS_SECRET: secrets.integrations,
-    EMAIL_PROVIDER: "smtp",
-    SMTP_HOST: "smtp.gmail.com",
-    SMTP_PORT: "587",
-    SMTP_USER: "assikimawaki@gmail.com",
-    EMAIL_FROM: "assikimawaki@gmail.com",
-    EMAIL_FROM_NAME: "WOLOYEM Score",
-    EMAIL_DAILY_LIMIT: "400",
-    EMAIL_RATE_PER_MINUTE: "5",
-    SMTP_PASSWORD: secrets.smtpPassword,
-  }
-
-  const previewVars = {
-    ...prodVars,
-    // Preview uses local service role for app + e2e extras.
-    SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
-    E2E_SUPABASE_ANON_KEY: secrets.publishable,
-    E2E_SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
-  }
-
-  const sensitiveNames = new Set([
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
-    "SUPABASE_SERVICE_ROLE_KEY",
-    "INTEGRATIONS_SECRET",
-    "SMTP_PASSWORD",
-    "SMTP_USER",
-    "E2E_SUPABASE_ANON_KEY",
-    "E2E_SUPABASE_SERVICE_ROLE_KEY",
-  ])
+  const { prodVars, previewVars } = buildVercelVarSets(secrets)
+  const results = []
 
   say("")
   say("--- Vercel Production ---")
   for (const [name, value] of Object.entries(prodVars)) {
-    await vercelRm(name, "production")
-    await vercelAdd(name, "production", value, { sensitive: sensitiveNames.has(name) })
+    const row = await upsertVercelEnv(name, "production", value)
+    results.push(row)
+    say(`  ${row.ok ? "OK" : "FAIL"} ${name} (${row.kind})${row.ok ? "" : ` — ${row.detail}`}`)
   }
 
   say("")
   say("--- Vercel Preview ---")
   for (const [name, value] of Object.entries(previewVars)) {
-    await vercelRm(name, "preview")
-    await vercelAdd(name, "preview", value, { sensitive: sensitiveNames.has(name) })
+    const row = await upsertVercelEnv(name, "preview", value)
+    results.push(row)
+    say(`  ${row.ok ? "OK" : "FAIL"} ${name} (${row.kind})${row.ok ? "" : ` — ${row.detail}`}`)
   }
+
+  printVercelSummary(results)
 
   say("")
   say("--- vercel env ls (names only) ---")
@@ -352,7 +420,6 @@ async function syncVercel(secrets) {
     for (const line of `${listed.stdout || ""}${listed.stderr || ""}`.split(/\r?\n/)) {
       const trimmed = line.trim()
       if (!trimmed) continue
-      // Print name column only when recognizable; otherwise skip value-looking tokens.
       const nameMatch = trimmed.match(/^([A-Z][A-Z0-9_]*)\b/)
       if (nameMatch) say(`  ${nameMatch[1]}`)
       else if (/Environment|Name|Value|production|preview|Development/i.test(trimmed) && trimmed.length < 80) {
@@ -360,6 +427,8 @@ async function syncVercel(secrets) {
       }
     }
   }
+
+  return results
 }
 
 function archiveXpLocal() {
@@ -379,22 +448,7 @@ function archiveXpLocal() {
   say(`Archive: .env.xp.local → ${destDir} (contenu non lu)`)
 }
 
-async function runInteractive() {
-  say("WOLOYEM Score — setup-env (staging hzn… only)")
-  say("Les secrets sont saisis masqués (non affichés, non logués).")
-  say("")
-
-  const stamp = stampNow()
-  const envLocalPath = join(ROOT, ".env.local")
-  const envE2ePath = join(ROOT, ".env.e2e.local")
-
-  const bakLocal = backupFile(envLocalPath, stamp)
-  const bakE2e = backupFile(envE2ePath, stamp)
-  if (bakLocal) say(`Backup: ${bakLocal}`)
-  else say("Backup: .env.local absent — création.")
-  if (bakE2e) say(`Backup: ${bakE2e}`)
-  else say("Backup: .env.e2e.local absent — création.")
-
+async function collectSecretsInteractive({ reuseLocalCrypto }) {
   const publishable = (
     await askUntil(
       "Publishable key (sb_publishable_, saisie masquée) : ",
@@ -411,45 +465,90 @@ async function runInteractive() {
     )
   ).trim()
 
-  let integrations
-  for (;;) {
-    const integrationsRaw = String(
-      await askHidden("INTEGRATIONS_SECRET (64 hex, vide = génération automatique) : "),
-    ).trim()
-    if (!integrationsRaw) {
-      integrations = generateIntegrationsSecret()
-      say("INTEGRATIONS_SECRET: généré (64 hex) — non affiché.")
-      break
+  let integrations = null
+  let smtpPassword = null
+
+  if (reuseLocalCrypto) {
+    const envLocalPath = join(ROOT, ".env.local")
+    integrations = readEnvFileValue(envLocalPath, "INTEGRATIONS_SECRET")
+    smtpPassword = readEnvFileValue(envLocalPath, "SMTP_PASSWORD")
+    if (integrations && isIntegrationsSecret(integrations)) {
+      say("INTEGRATIONS_SECRET: réutilisé depuis .env.local (non affiché).")
+    } else {
+      say("INTEGRATIONS_SECRET absent/invalide dans .env.local — saisie requise.")
+      integrations = null
     }
-    if (isIntegrationsSecret(integrationsRaw)) {
-      integrations = integrationsRaw
-      break
+    if (smtpPassword && isGmailAppPassword(smtpPassword)) {
+      smtpPassword = normalizeGmailAppPassword(smtpPassword)
+      say("SMTP_PASSWORD: réutilisé depuis .env.local (non affiché).")
+    } else {
+      say("SMTP_PASSWORD absent/invalide dans .env.local — saisie requise.")
+      smtpPassword = null
     }
-    say("Format invalide — 64 caractères hexadécimaux, ou laisse vide pour générer. Réessaie.")
   }
 
-  const smtpPassword = normalizeGmailAppPassword(
-    await askUntil(
-      "Mot de passe d'application Gmail (16 lettres, saisie masquée) : ",
-      isGmailAppPassword,
-      "Format invalide — 16 lettres (espaces retirés auto). Réessaie.",
-    ),
-  )
+  if (!integrations) {
+    for (;;) {
+      const integrationsRaw = String(
+        await askHidden("INTEGRATIONS_SECRET (64 hex, vide = génération automatique) : "),
+      ).trim()
+      if (!integrationsRaw) {
+        integrations = generateIntegrationsSecret()
+        say("INTEGRATIONS_SECRET: généré (64 hex) — non affiché.")
+        break
+      }
+      if (isIntegrationsSecret(integrationsRaw)) {
+        integrations = integrationsRaw
+        break
+      }
+      say("Format invalide — 64 caractères hexadécimaux, ou laisse vide pour générer. Réessaie.")
+    }
+  }
 
-  const secrets = { publishable, serviceLocal, integrations, smtpPassword }
+  if (!smtpPassword) {
+    smtpPassword = normalizeGmailAppPassword(
+      await askUntil(
+        "Mot de passe d'application Gmail (16 lettres, saisie masquée) : ",
+        isGmailAppPassword,
+        "Format invalide — 16 lettres (espaces retirés auto). Réessaie.",
+      ),
+    )
+  }
+
+  return { publishable, serviceLocal, integrations, smtpPassword }
+}
+
+async function runInteractive() {
+  say("WOLOYEM Score — setup-env (staging hzn… only)")
+  say("Les secrets sont saisis masqués (non affichés, non logués).")
+  say("")
+
+  const stamp = stampNow()
+  const envLocalPath = join(ROOT, ".env.local")
+  const envE2ePath = join(ROOT, ".env.e2e.local")
+
+  const bakLocal = backupFile(envLocalPath, stamp)
+  const bakE2e = backupFile(envE2ePath, stamp)
+  if (bakLocal) say(`Backup: ${bakLocal}`)
+  else say("Backup: .env.local absent — création.")
+  if (bakE2e) say(`Backup: ${bakE2e}`)
+  else say("Backup: .env.e2e.local absent — création.")
+
+  const base = await collectSecretsInteractive({ reuseLocalCrypto: false })
+  const secrets = { ...base }
 
   const localExtras = {
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: publishable,
-    SUPABASE_SERVICE_ROLE_KEY: serviceLocal,
-    INTEGRATIONS_SECRET: integrations,
-    SMTP_PASSWORD: smtpPassword,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: secrets.publishable,
+    SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
+    INTEGRATIONS_SECRET: secrets.integrations,
+    SMTP_PASSWORD: secrets.smtpPassword,
   }
 
   const e2eExtras = {
     ...localExtras,
     E2E_SUPABASE_URL: ALLOWED_SUPABASE_URL,
-    E2E_SUPABASE_ANON_KEY: publishable,
-    E2E_SUPABASE_SERVICE_ROLE_KEY: serviceLocal,
+    E2E_SUPABASE_ANON_KEY: secrets.publishable,
+    E2E_SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
   }
 
   const beforeLocal = existsSync(envLocalPath) ? readFileSync(envLocalPath, "utf8") : ""
@@ -469,7 +568,14 @@ async function runInteractive() {
 
   const vercelAnswer = (await askLine('Mettre à jour Vercel ? (répondre exactement "oui") : ')).toLowerCase()
   if (vercelAnswer === "oui") {
-    await syncVercel(secrets)
+    const serviceProduction = (
+      await askUntil(
+        "Secret key Production (sb_secret_, saisie masquée) : ",
+        isSecretKey,
+        "Format invalide — doit commencer par sb_secret_. Réessaie.",
+      )
+    ).trim()
+    await syncVercel({ ...secrets, serviceProduction })
   } else {
     say("Vercel: ignoré.")
   }
@@ -477,6 +583,25 @@ async function runInteractive() {
   archiveXpLocal()
   say("")
   say("Terminé.")
+}
+
+async function runVercelOnly() {
+  say("WOLOYEM Score — setup-env --vercel-only (staging hzn…)")
+  say("Partie locale ignorée. Secrets masqués ; INTEGRATIONS_SECRET / SMTP_PASSWORD réutilisés depuis .env.local si valides.")
+  say("")
+
+  const base = await collectSecretsInteractive({ reuseLocalCrypto: true })
+  const serviceProduction = (
+    await askUntil(
+      "Secret key Production (sb_secret_, saisie masquée) : ",
+      isSecretKey,
+      "Format invalide — doit commencer par sb_secret_. Réessaie.",
+    )
+  ).trim()
+
+  await syncVercel({ ...base, serviceProduction })
+  say("")
+  say("Terminé (--vercel-only).")
 }
 
 function selfTest() {
@@ -508,78 +633,158 @@ function selfTest() {
   assert(normalizeGmailAppPassword("ab cd").length === 4, "normalize spaces")
   assert(generateIntegrationsSecret().length === 64, "generate length")
 
-  const tmpDir = join(ROOT, ".tmp-setup-env-test")
-  mkdirSync(tmpDir, { recursive: true })
-  const fakeLocal = join(tmpDir, ".env.local")
-  const fakeE2e = join(tmpDir, ".env.e2e.local")
-  writeFileSync(fakeLocal, "KEEP_ME=yes\nSMTP_HOST=old\nSMTP_HOST=dup\n", "utf8")
-  writeFileSync(
-    fakeE2e,
-    "E2E_PROTECT_SUPABASE_URL=https://evil.example\nKEEP_E2E=1\n",
-    "utf8",
-  )
-  const stamp = "20990101-0000"
-  const bak = backupFile(fakeLocal, stamp)
-  assert(bak === `${fakeLocal}.bak-${stamp}`, "backup path")
-  assert(existsSync(bak), "backup exists")
+  assert(isVercelSensitive("NEXT_PUBLIC_SUPABASE_ANON_KEY") === false, "NEXT_PUBLIC never sensitive")
+  assert(isVercelSensitive("NEXT_PUBLIC_APP_URL") === false, "NEXT_PUBLIC_APP_URL plain")
+  assert(isVercelSensitive("E2E_SUPABASE_ANON_KEY") === false, "E2E anon plain")
+  assert(isVercelSensitive("SMTP_USER") === false, "SMTP_USER plain")
+  assert(isVercelSensitive("SUPABASE_SERVICE_ROLE_KEY") === true, "service role sensitive")
+  assert(isVercelSensitive("INTEGRATIONS_SECRET") === true, "integrations sensitive")
+  assert(isVercelSensitive("SMTP_PASSWORD") === true, "smtp password sensitive")
+  assert(isVercelSensitive("E2E_SUPABASE_SERVICE_ROLE_KEY") === true, "e2e service sensitive")
 
-  const fakeSecrets = {
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_fake",
-    SUPABASE_SERVICE_ROLE_KEY: "sb_secret_fake",
-    INTEGRATIONS_SECRET: "ab".repeat(32),
-    SMTP_PASSWORD: "abcdefghijklmnop",
+  const sets = buildVercelVarSets({
+    publishable: "sb_publishable_fake",
+    serviceLocal: "sb_secret_local",
+    serviceProduction: "sb_secret_prod",
+    integrations: "ab".repeat(32),
+    smtpPassword: "abcdefghijklmnop",
+  })
+  assert(sets.prodVars.NEXT_PUBLIC_APP_URL === PROD_APP_URL, "prod app url")
+  assert(sets.previewVars.SUPABASE_SERVICE_ROLE_KEY === "sb_secret_local", "preview uses local service")
+  assert(sets.prodVars.SUPABASE_SERVICE_ROLE_KEY === "sb_secret_prod", "prod uses prod service")
+
+  // Fake upsert: one failure must not stop the loop; summary collects OK/FAIL.
+  const fakeCalls = []
+  const fakeRm = async (name, environment) => {
+    fakeCalls.push(`rm:${environment}:${name}`)
+    return "removed"
   }
-  writeFileSync(
-    fakeLocal,
-    applyLocalEnvFile(readFileSync(fakeLocal, "utf8"), { extras: fakeSecrets }),
-    "utf8",
-  )
-  writeFileSync(
-    fakeE2e,
-    applyLocalEnvFile(readFileSync(fakeE2e, "utf8"), {
-      extras: {
-        ...fakeSecrets,
-        E2E_SUPABASE_URL: ALLOWED_SUPABASE_URL,
-        E2E_SUPABASE_ANON_KEY: fakeSecrets.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        E2E_SUPABASE_SERVICE_ROLE_KEY: fakeSecrets.SUPABASE_SERVICE_ROLE_KEY,
-      },
-      remove: ["E2E_PROTECT_SUPABASE_URL"],
-    }),
-    "utf8",
-  )
-
-  const localOut = readFileSync(fakeLocal, "utf8")
-  const e2eOut = readFileSync(fakeE2e, "utf8")
-  assert(localOut.includes("KEEP_ME=yes"), "preserved unrelated")
-  assert((localOut.match(/^SMTP_HOST=/gm) || []).length === 1, "smtp host single")
-  assert(localOut.includes("SMTP_HOST=smtp.gmail.com"), "smtp host overwritten")
-  assert(localOut.includes("EMAIL_PROVIDER=smtp"), "email provider")
-  assert(localOut.includes(`NEXT_PUBLIC_SUPABASE_URL=${ALLOWED_SUPABASE_URL}`), "supabase url")
-  assert(!e2eOut.includes("E2E_PROTECT_SUPABASE_URL"), "protect removed")
-  assert(e2eOut.includes("E2E_SUPABASE_URL="), "e2e url set")
-  assert(e2eOut.includes("KEEP_E2E=1"), "e2e keep")
-  assert(backupPath(".env.local", "20260101-1530") === ".env.local.bak-20260101-1530", "stamp format")
-
-  try {
-    rmSync(tmpDir, { recursive: true, force: true })
-  } catch {
-    /* ignore */
+  const fakeAdd = async (name, environment, _value, { sensitive }) => {
+    fakeCalls.push(`add:${environment}:${name}:${sensitive ? "secret" : "config"}`)
+    if (name === "NEXT_PUBLIC_SUPABASE_ANON_KEY" && environment === "production") {
+      return { ok: false, detail: "NEXT_PUBLIC cannot be secret (simulated)" }
+    }
+    return { ok: true, detail: null }
   }
 
-  if (failures.length) {
-    say(`SELF-TEST FAIL (${failures.length})`)
-    for (const f of failures) say(`  - ${f}`)
-    process.exit(1)
+  const runFake = async () => {
+    const rows = []
+    for (const [name, value] of Object.entries(sets.prodVars)) {
+      rows.push(
+        await upsertVercelEnv(name, "production", value, {
+          vercelRmFn: fakeRm,
+          vercelAddFn: fakeAdd,
+        }),
+      )
+    }
+    return rows
   }
-  say("SELF-TEST PASS")
-  process.exit(0)
+
+  return runFake().then((rows) => {
+    assert(rows.length === Object.keys(sets.prodVars).length, "continued after failure")
+    const anon = rows.find((r) => r.name === "NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    assert(anon && anon.ok === false && anon.kind === "config", "anon fail as config not secret")
+    assert(
+      fakeCalls.includes("add:production:NEXT_PUBLIC_SUPABASE_ANON_KEY:config"),
+      "anon added as config",
+    )
+    assert(
+      fakeCalls.includes("add:production:SUPABASE_SERVICE_ROLE_KEY:secret"),
+      "service role secret",
+    )
+    const okCount = rows.filter((r) => r.ok).length
+    assert(okCount === rows.length - 1, "only one simulated failure")
+
+    const tmpDir = join(ROOT, ".tmp-setup-env-test")
+    mkdirSync(tmpDir, { recursive: true })
+    const fakeLocal = join(tmpDir, ".env.local")
+    const fakeE2e = join(tmpDir, ".env.e2e.local")
+    writeFileSync(fakeLocal, "KEEP_ME=yes\nSMTP_HOST=old\nSMTP_HOST=dup\n", "utf8")
+    writeFileSync(
+      fakeE2e,
+      "E2E_PROTECT_SUPABASE_URL=https://evil.example\nKEEP_E2E=1\n",
+      "utf8",
+    )
+    const stamp = "20990101-0000"
+    const bak = backupFile(fakeLocal, stamp)
+    assert(bak === `${fakeLocal}.bak-${stamp}`, "backup path")
+    assert(existsSync(bak), "backup exists")
+
+    const fakeSecrets = {
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "sb_publishable_fake",
+      SUPABASE_SERVICE_ROLE_KEY: "sb_secret_fake",
+      INTEGRATIONS_SECRET: "ab".repeat(32),
+      SMTP_PASSWORD: "abcdefghijklmnop",
+    }
+    writeFileSync(
+      fakeLocal,
+      applyLocalEnvFile(readFileSync(fakeLocal, "utf8"), { extras: fakeSecrets }),
+      "utf8",
+    )
+    writeFileSync(
+      fakeE2e,
+      applyLocalEnvFile(readFileSync(fakeE2e, "utf8"), {
+        extras: {
+          ...fakeSecrets,
+          E2E_SUPABASE_URL: ALLOWED_SUPABASE_URL,
+          E2E_SUPABASE_ANON_KEY: fakeSecrets.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+          E2E_SUPABASE_SERVICE_ROLE_KEY: fakeSecrets.SUPABASE_SERVICE_ROLE_KEY,
+        },
+        remove: ["E2E_PROTECT_SUPABASE_URL"],
+      }),
+      "utf8",
+    )
+
+    const localOut = readFileSync(fakeLocal, "utf8")
+    const e2eOut = readFileSync(fakeE2e, "utf8")
+    assert(localOut.includes("KEEP_ME=yes"), "preserved unrelated")
+    assert((localOut.match(/^SMTP_HOST=/gm) || []).length === 1, "smtp host single")
+    assert(localOut.includes("SMTP_HOST=smtp.gmail.com"), "smtp host overwritten")
+    assert(localOut.includes("EMAIL_PROVIDER=smtp"), "email provider")
+    assert(localOut.includes(`NEXT_PUBLIC_SUPABASE_URL=${ALLOWED_SUPABASE_URL}`), "supabase url")
+    assert(!e2eOut.includes("E2E_PROTECT_SUPABASE_URL"), "protect removed")
+    assert(e2eOut.includes("E2E_SUPABASE_URL="), "e2e url set")
+    assert(e2eOut.includes("KEEP_E2E=1"), "e2e keep")
+    assert(backupPath(".env.local", "20260101-1530") === ".env.local.bak-20260101-1530", "stamp format")
+
+    const reused = readEnvFileValue(fakeLocal, "INTEGRATIONS_SECRET")
+    assert(reused === fakeSecrets.INTEGRATIONS_SECRET, "readEnvFileValue integrations")
+    assert(readEnvFileValue(fakeLocal, "SMTP_PASSWORD") === fakeSecrets.SMTP_PASSWORD, "read smtp")
+
+    // Idempotent second apply
+    const again = applyLocalEnvFile(localOut, { extras: fakeSecrets })
+    assert((again.match(/^EMAIL_PROVIDER=/gm) || []).length === 1, "idempotent upsert")
+
+    try {
+      rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      /* ignore */
+    }
+
+    if (failures.length) {
+      say(`SELF-TEST FAIL (${failures.length})`)
+      for (const f of failures) say(`  - ${f}`)
+      process.exit(1)
+    }
+    say("SELF-TEST PASS")
+    process.exit(0)
+  })
 }
 
 const entry = process.argv[1] ? resolve(process.argv[1]) : ""
 const self = resolve(fileURLToPath(import.meta.url))
 if (entry && entry === self) {
-  if (process.argv.includes("--self-test")) selfTest()
-  else {
+  if (process.argv.includes("--self-test")) {
+    Promise.resolve(selfTest()).catch((error) => {
+      say(`SELF-TEST ERROR: ${error instanceof Error ? error.message : "failed"}`)
+      process.exit(1)
+    })
+  } else if (process.argv.includes("--vercel-only")) {
+    runVercelOnly().catch((error) => {
+      say(`ERROR: ${error instanceof Error ? error.message : "failed"}`)
+      process.exit(1)
+    })
+  } else {
     runInteractive().catch((error) => {
       say(`ERROR: ${error instanceof Error ? error.message : "failed"}`)
       process.exit(1)
