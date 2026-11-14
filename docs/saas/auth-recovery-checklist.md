@@ -1,8 +1,9 @@
 # Checklist manuelle — Auth recovery WOLOYEM Score
 
 **Projet Vercel :** `score-card-mawaki` → https://score-card-mawaki.vercel.app  
-**Supabase uniquement :** `hznmtadobqfhumezdgbh` (staging)  
-**Interdit :** ScorApp-XP `zkyjaslogpdujyeysjzw`  
+**Base unique (whitelist) :** `https://hznmtadobqfhumezdgbh.supabase.co` — local, e2e, Preview, Production  
+**Constante code :** `ALLOWED_SUPABASE_REF` dans `lib/env/allowed-supabase.ts` (à changer seulement pour un cutover LIVE)  
+**XP n’est plus un environnement de ce projet.**  
 **Aucune valeur secrète dans ce document.**
 
 ---
@@ -67,9 +68,10 @@ Dans Supabase `hzn…` → Authentication → SMTP :
 - [ ] Production : `NEXT_PUBLIC_APP_URL` → `score-card-mawaki.vercel.app`
 - [ ] Production : `NEXT_PUBLIC_SUPABASE_ANON_KEY` = Config
 - [ ] Production : **plus aucun** `E2E_*` (fait 2026-11-13 via OUI-ENV)
-- [ ] Preview : `E2E_*` encore présents (volontaire — non retirés)
-- [ ] `SUPABASE_SERVICE_ROLE_KEY` : JWT staging `service_role` (vérifier au dashboard ; pas placeholder)
+- [ ] Preview : retirer `E2E_PROTECT_SUPABASE_URL` et tout `E2E_*` pointant hors hzn… (préparé T3e — non auto-exécuté)
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` : `sb_secret_…` staging (vérifier au dashboard ; pas placeholder)
 - [ ] **`INTEGRATIONS_SECRET`** présent (Secret) — **Production** et **Preview** (min 32 car. ; préférer 64 hex)
+- [ ] Aucune URL Supabase hors `hznmtadobqfhumezdgbh` (whitelist `ALLOWED_SUPABASE_REF`)
 - [ ] Stripe : TEST uniquement (`sk_test_` / `pk_test_`)
 - [ ] Après changements `NEXT_PUBLIC_*` : redeploy seulement avec **`OUI-REDEPLOY`**
 
@@ -81,7 +83,8 @@ Dans Supabase `hzn…` → Authentication → SMTP :
 **Ordre pour chaque secret :**
 
 1. **Générer** la nouvelle clé chez le fournisseur  
-2. **Mettre à jour** `.env.local` (et `.env.e2e.local` / `.env.xp.local` si pertinent)  
+2. **Mettre à jour** `.env.local` (et `.env.e2e.local` si pertinent) — URLs Supabase = hzn… uniquement  
+
 3. **Mettre à jour** Vercel (Production ± Preview) — type Config ou Secret selon le cas  
 4. **Tester** (login / cron / webhook / e-mail selon le secret)  
 5. **Redeploy** si variable `NEXT_PUBLIC_*` ou si le runtime live n’a pas encore la valeur (**`OUI-REDEPLOY`**)  

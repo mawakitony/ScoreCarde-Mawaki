@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr"
+import { assertAllowedSupabaseUrl } from "@/lib/env/allowed-supabase"
 import type { Database } from "@/types/database"
 
 export function createClient() {
@@ -7,6 +8,7 @@ export function createClient() {
   if (!url || !key) {
     throw new Error("Supabase n'est pas configuré.")
   }
+  assertAllowedSupabaseUrl(url)
 
   return createBrowserClient<Database>(url, key)
 }

@@ -1,3 +1,5 @@
+import { isAllowedSupabaseUrl } from "@/lib/env/allowed-supabase"
+
 export function isSupabaseConfigured() {
   return Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL &&
@@ -26,7 +28,7 @@ export function e2eDatabaseAllowed(env: Record<string, string | undefined> = pro
   const target = env.E2E_SUPABASE_URL?.trim()
   if (!target) return false
   if (env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) return false
-  return target !== env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  return isAllowedSupabaseUrl(target) && isAllowedSupabaseUrl(env.NEXT_PUBLIC_SUPABASE_URL)
 }
 
 export function e2eCurrentDatabaseAllowed(env: Record<string, string | undefined> = process.env) {
@@ -34,12 +36,13 @@ export function e2eCurrentDatabaseAllowed(env: Record<string, string | undefined
   if (env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) return false
   if (env.E2E_ALLOW_CURRENT !== "1") return false
   if (!/^E2E-WOLOYEM-\d+$/.test(env.E2E_PREFIX?.trim() ?? "")) return false
+  if (!isAllowedSupabaseUrl(env.NEXT_PUBLIC_SUPABASE_URL)) return false
   return Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY && env.SUPABASE_SERVICE_ROLE_KEY)
 }
 
 /**
- * Isolated Lot 7 E2E: the Next.js server under test must talk to the E2E project,
- * while E2E_PROTECT_SUPABASE_URL names the real/dev project that must never be seeded.
+ * Staging-only E2E: app + E2E URLs must be the allowed hzn… ref.
+ * E2E_PROTECT_SUPABASE_URL is optional; if set it must also be the allowed ref (legacy dual-project protect removed).
  */
 export function e2eIsolatedAllowed(env: Record<string, string | undefined> = process.env) {
   if (env.NODE_ENV === "production") return false
@@ -48,12 +51,12 @@ export function e2eIsolatedAllowed(env: Record<string, string | undefined> = pro
   const e2eUrl = env.E2E_SUPABASE_URL?.trim()
   const protect = env.E2E_PROTECT_SUPABASE_URL?.trim()
   const appUrl = env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-  if (!base || !e2eUrl || !protect || !appUrl) return false
+  if (!base || !e2eUrl || !appUrl) return false
   if (!env.E2E_SUPABASE_ANON_KEY?.trim() || !env.E2E_SUPABASE_SERVICE_ROLE_KEY?.trim()) return false
   if (!env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || !env.SUPABASE_SERVICE_ROLE_KEY?.trim()) return false
-  if (e2eUrl === protect) return false
+  if (!isAllowedSupabaseUrl(e2eUrl) || !isAllowedSupabaseUrl(appUrl)) return false
+  if (protect && !isAllowedSupabaseUrl(protect)) return false
   if (appUrl !== e2eUrl) return false
-  if (appUrl === protect) return false
   if (!/^E2E-WOLOYEM-\d+$/.test(env.E2E_PREFIX?.trim() ?? "")) return false
   return true
 }
@@ -63,7 +66,6 @@ export function e2eIsolatedBlockReason(env: Record<string, string | undefined> =
   if (env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) return "STRIPE_SECRET_KEY is live"
   if (!env.E2E_BASE_URL?.trim()) return "E2E_BASE_URL missing"
   if (!env.E2E_SUPABASE_URL?.trim()) return "E2E_SUPABASE_URL missing"
-  if (!env.E2E_PROTECT_SUPABASE_URL?.trim()) return "E2E_PROTECT_SUPABASE_URL missing"
   if (!env.E2E_SUPABASE_ANON_KEY?.trim()) return "E2E_SUPABASE_ANON_KEY missing"
   if (!env.E2E_SUPABASE_SERVICE_ROLE_KEY?.trim()) return "E2E_SUPABASE_SERVICE_ROLE_KEY missing"
   if (!env.NEXT_PUBLIC_SUPABASE_URL?.trim()) return "NEXT_PUBLIC_SUPABASE_URL missing"
@@ -71,11 +73,12 @@ export function e2eIsolatedBlockReason(env: Record<string, string | undefined> =
   if (!env.SUPABASE_SERVICE_ROLE_KEY?.trim()) return "SUPABASE_SERVICE_ROLE_KEY missing"
   if (!/^E2E-WOLOYEM-\d+$/.test(env.E2E_PREFIX?.trim() ?? "")) return "E2E_PREFIX must match E2E-WOLOYEM-<digits>"
   const e2eUrl = env.E2E_SUPABASE_URL!.trim()
-  const protect = env.E2E_PROTECT_SUPABASE_URL!.trim()
+  const protect = env.E2E_PROTECT_SUPABASE_URL?.trim()
   const appUrl = env.NEXT_PUBLIC_SUPABASE_URL!.trim()
-  if (e2eUrl === protect) return "E2E_SUPABASE_URL must differ from E2E_PROTECT_SUPABASE_URL"
-  if (appUrl !== e2eUrl) return "NEXT_PUBLIC_SUPABASE_URL must equal E2E_SUPABASE_URL for isolated runs"
-  if (appUrl === protect) return "NEXT_PUBLIC_SUPABASE_URL must not equal the protected project"
+  if (!isAllowedSupabaseUrl(e2eUrl)) return "E2E_SUPABASE_URL must be allowed staging ref"
+  if (!isAllowedSupabaseUrl(appUrl)) return "NEXT_PUBLIC_SUPABASE_URL must be allowed staging ref"
+  if (protect && !isAllowedSupabaseUrl(protect)) return "E2E_PROTECT_SUPABASE_URL must be allowed staging ref or unset"
+  if (appUrl !== e2eUrl) return "NEXT_PUBLIC_SUPABASE_URL must equal E2E_SUPABASE_URL"
   return null
 }
 

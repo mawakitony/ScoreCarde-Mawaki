@@ -1,5 +1,6 @@
 import "server-only"
 import { createClient } from "@supabase/supabase-js"
+import { assertAllowedSupabaseUrl } from "@/lib/env/allowed-supabase"
 import type { Database } from "@/types/database"
 
 export function createAdminClient() {
@@ -8,6 +9,7 @@ export function createAdminClient() {
   if (!url || !key) {
     throw new Error("SUPABASE_SERVICE_ROLE_KEY est absente.")
   }
+  assertAllowedSupabaseUrl(url)
 
   return createClient<Database>(url, key, {
     auth: {

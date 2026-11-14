@@ -78,21 +78,22 @@ test("production env and CSP stay strict", () => {
   assert.deepEqual(missingProductionEnv({ NODE_ENV: "development" }), [])
   assert.ok(missingProductionEnv({ NODE_ENV: "production" }).includes("CRON_SECRET"))
   assert.ok(missingProductionEnv({ NODE_ENV: "production" }).includes("INTEGRATIONS_SECRET"))
-  assert.equal(e2eDatabaseAllowed({ NODE_ENV: "production", E2E_SUPABASE_URL: "https://e2e.supabase.co" }), false)
-  assert.equal(e2eDatabaseAllowed({ NODE_ENV: "test", E2E_SUPABASE_URL: "https://e2e.supabase.co", NEXT_PUBLIC_SUPABASE_URL: "https://prod.supabase.co" }), true)
-  assert.equal(e2eDatabaseAllowed({ NODE_ENV: "test", E2E_SUPABASE_URL: "https://same.supabase.co", NEXT_PUBLIC_SUPABASE_URL: "https://same.supabase.co" }), false)
-  assert.equal(e2eCurrentDatabaseAllowed({ NODE_ENV: "test", E2E_ALLOW_CURRENT: "1", E2E_PREFIX: "E2E-WOLOYEM-1", NEXT_PUBLIC_SUPABASE_URL: "https://same.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", SUPABASE_SERVICE_ROLE_KEY: "service" }), true)
-  assert.equal(e2eCurrentDatabaseAllowed({ NODE_ENV: "test", E2E_PREFIX: "E2E-WOLOYEM-1", NEXT_PUBLIC_SUPABASE_URL: "https://same.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", SUPABASE_SERVICE_ROLE_KEY: "service" }), false)
-  assert.equal(e2eCurrentDatabaseAllowed({ NODE_ENV: "production", E2E_ALLOW_CURRENT: "1", E2E_PREFIX: "E2E-WOLOYEM-1", NEXT_PUBLIC_SUPABASE_URL: "https://same.supabase.co", NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", SUPABASE_SERVICE_ROLE_KEY: "service" }), false)
+  const staging = "https://hznmtadobqfhumezdgbh.supabase.co"
+  const foreign = "https://zkyjaslogpdujyeysjzw.supabase.co"
+  assert.equal(e2eDatabaseAllowed({ NODE_ENV: "production", E2E_SUPABASE_URL: staging }), false)
+  assert.equal(e2eDatabaseAllowed({ NODE_ENV: "test", E2E_SUPABASE_URL: staging, NEXT_PUBLIC_SUPABASE_URL: staging }), true)
+  assert.equal(e2eDatabaseAllowed({ NODE_ENV: "test", E2E_SUPABASE_URL: foreign, NEXT_PUBLIC_SUPABASE_URL: staging }), false)
+  assert.equal(e2eCurrentDatabaseAllowed({ NODE_ENV: "test", E2E_ALLOW_CURRENT: "1", E2E_PREFIX: "E2E-WOLOYEM-1", NEXT_PUBLIC_SUPABASE_URL: staging, NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", SUPABASE_SERVICE_ROLE_KEY: "service" }), true)
+  assert.equal(e2eCurrentDatabaseAllowed({ NODE_ENV: "test", E2E_PREFIX: "E2E-WOLOYEM-1", NEXT_PUBLIC_SUPABASE_URL: staging, NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", SUPABASE_SERVICE_ROLE_KEY: "service" }), false)
+  assert.equal(e2eCurrentDatabaseAllowed({ NODE_ENV: "production", E2E_ALLOW_CURRENT: "1", E2E_PREFIX: "E2E-WOLOYEM-1", NEXT_PUBLIC_SUPABASE_URL: staging, NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon", SUPABASE_SERVICE_ROLE_KEY: "service" }), false)
   assert.equal(
     e2eIsolatedAllowed({
       NODE_ENV: "test",
       E2E_BASE_URL: "http://localhost:3000",
-      E2E_SUPABASE_URL: "https://e2e.supabase.co",
-      E2E_PROTECT_SUPABASE_URL: "https://prod.supabase.co",
+      E2E_SUPABASE_URL: staging,
       E2E_SUPABASE_ANON_KEY: "anon",
       E2E_SUPABASE_SERVICE_ROLE_KEY: "service",
-      NEXT_PUBLIC_SUPABASE_URL: "https://e2e.supabase.co",
+      NEXT_PUBLIC_SUPABASE_URL: staging,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
       SUPABASE_SERVICE_ROLE_KEY: "service",
       E2E_PREFIX: "E2E-WOLOYEM-1",
@@ -103,11 +104,11 @@ test("production env and CSP stay strict", () => {
     e2eIsolatedAllowed({
       NODE_ENV: "test",
       E2E_BASE_URL: "http://localhost:3000",
-      E2E_SUPABASE_URL: "https://e2e.supabase.co",
-      E2E_PROTECT_SUPABASE_URL: "https://prod.supabase.co",
+      E2E_SUPABASE_URL: staging,
+      E2E_PROTECT_SUPABASE_URL: foreign,
       E2E_SUPABASE_ANON_KEY: "anon",
       E2E_SUPABASE_SERVICE_ROLE_KEY: "service",
-      NEXT_PUBLIC_SUPABASE_URL: "https://prod.supabase.co",
+      NEXT_PUBLIC_SUPABASE_URL: staging,
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon",
       SUPABASE_SERVICE_ROLE_KEY: "service",
       E2E_PREFIX: "E2E-WOLOYEM-1",

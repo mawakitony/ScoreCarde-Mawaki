@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
+import { assertAllowedSupabaseUrl } from "@/lib/env/allowed-supabase"
 import type { Database } from "@/types/database"
 
 export async function createClient() {
@@ -8,6 +9,7 @@ export async function createClient() {
   if (!url || !key) {
     throw new Error("Supabase n'est pas configuré.")
   }
+  assertAllowedSupabaseUrl(url)
 
   const cookieStore = await cookies()
 

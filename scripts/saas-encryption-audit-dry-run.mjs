@@ -9,8 +9,9 @@ import { existsSync, readFileSync } from "node:fs"
 import { createClient } from "@supabase/supabase-js"
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto"
 
-const STAGING = "hznmtadobqfhumezdgbh.supabase.co"
-const XP = "zkyjaslogpdujyeysjzw.supabase.co"
+import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase.ts"
+
+const STAGING = ALLOWED_SUPABASE_HOST
 
 function load(file) {
   if (!existsSync(file)) return
@@ -79,11 +80,7 @@ console.log(`SERVICE_ROLE_PRESENT=${service ? "yes" : "no"}`)
 console.log("MODE=dry-run")
 
 if (host !== STAGING) {
-  console.error("REFUSED: audit must target staging hzn… only")
-  process.exit(2)
-}
-if (host === XP) {
-  console.error("REFUSED: XP")
+  console.error(`REFUSED: audit must target ${STAGING} only`)
   process.exit(2)
 }
 if (!service) {

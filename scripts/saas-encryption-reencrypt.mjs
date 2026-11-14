@@ -14,8 +14,9 @@ import { existsSync, readFileSync } from "node:fs"
 import { createDecipheriv, createHash, hkdfSync } from "node:crypto"
 import { createClient } from "@supabase/supabase-js"
 
-const STAGING = "hznmtadobqfhumezdgbh.supabase.co"
-const XP = "zkyjaslogpdujyeysjzw.supabase.co"
+import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase.ts"
+
+const STAGING = ALLOWED_SUPABASE_HOST
 const SALT = "woloyem-app-secret-v1"
 const MIN = 32
 
@@ -81,11 +82,7 @@ console.log(`INTEGRATIONS_SECRET_PRESENT=${master.length >= MIN ? "yes" : "no"}`
 console.log(`SERVICE_ROLE_PRESENT=${service ? "yes" : "no"}`)
 
 if (host !== STAGING) {
-  console.error("REFUSED: staging hzn… only")
-  process.exit(2)
-}
-if (host === XP) {
-  console.error("REFUSED: XP")
+  console.error(`REFUSED: ${STAGING} only`)
   process.exit(2)
 }
 if (!service) {

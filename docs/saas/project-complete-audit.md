@@ -2,8 +2,9 @@
 
 **Date audit :** 2026-11-09  
 **Repo :** https://github.com/mawakitony/ScoreCarde-Mawaki (`main` @ `753437e`)  
-**Staging Supabase :** `hznmtadobqfhumezdgbh`  
-**Protect (non touché) :** ScorApp-XP `zkyjaslogpdujyeysjzw`  
+**Base unique :** `hznmtadobqfhumezdgbh` (`ALLOWED_SUPABASE_REF`) — seul projet autorisé  
+**XP :** plus un environnement de ce repo (T3e)  
+
 **Stack :** Next.js 16.3.5 · React 19.2.8 · Supabase · Stripe · Brevo
 
 Canvas interactif : ouvrir `woloyem-project-audit.canvas.tsx` à côté du chat.

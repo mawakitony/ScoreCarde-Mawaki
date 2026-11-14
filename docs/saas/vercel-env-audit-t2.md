@@ -64,7 +64,8 @@ Aucune variable listée / pullable → environnement **vide**.
 | **6× `E2E_*` en Production** (et Preview) | Prod + Preview | P1 | **Production retiré 2026-11-13 (OUI-ENV)** ; Preview conservé |
 | `SUPABASE_SERVICE_ROLE_KEY` = Secret présent | Prod + Preview | P1 | **Présent mais JWT non vérifiable** via pull ; historique import e2e = risque placeholder |
 | Development sans vars | Development | P2 | OK si local-only |
-| Pas de `NEXT_PUBLIC_SUPABASE_URL` XP (`zky…`) | Prod + Preview | — | **OK** (pas d’XP sur Vercel WOLOYEM) |
+| Pas de `NEXT_PUBLIC_SUPABASE_URL` hors hzn… | Prod + Preview | — | **OK** (whitelist T3e) |
+| `E2E_PROTECT_SUPABASE_URL` (Preview) | Preview | P1 | **À retirer** si ref ≠ hzn… (T3e — commandes préparées, non exécutées) |
 
 ---
 

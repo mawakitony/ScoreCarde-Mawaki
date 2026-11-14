@@ -1,27 +1,25 @@
-export type ActiveDatabaseLabel = "STAGING" | "XP" | "OTHER" | "MISSING"
+import { ALLOWED_SUPABASE_HOST, ALLOWED_SUPABASE_REF, isAllowedSupabaseUrl, supabaseHostFromUrl } from "@/lib/env/allowed-supabase"
 
-const STAGING_REF = "hznmtadobqfhumezdgbh"
-const XP_REF = "zkyjaslogpdujyeysjzw"
+export type ActiveDatabaseLabel = "STAGING" | "OTHER" | "MISSING"
 
 /** Public host/ref only — never returns secrets. */
 export function activeDatabaseLabel(
   url: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL,
 ): ActiveDatabaseLabel {
   if (!url?.trim()) return "MISSING"
-  try {
-    const host = new URL(url).host
-    if (host.startsWith(`${STAGING_REF}.`)) return "STAGING"
-    if (host.startsWith(`${XP_REF}.`)) return "XP"
-    return "OTHER"
-  } catch {
-    return "OTHER"
-  }
+  if (isAllowedSupabaseUrl(url)) return "STAGING"
+  return "OTHER"
 }
 
 export function activeDatabaseHost(url: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL) {
-  try {
-    return new URL(url ?? "").host || null
-  } catch {
-    return null
-  }
+  return supabaseHostFromUrl(url) || null
+}
+
+/** Dev banner copy — always describes the only allowed base. */
+export function activeDatabaseBannerText() {
+  return `BASE ACTIVE : STAGING · ${ALLOWED_SUPABASE_HOST}`
+}
+
+export function allowedSupabaseRef() {
+  return ALLOWED_SUPABASE_REF
 }

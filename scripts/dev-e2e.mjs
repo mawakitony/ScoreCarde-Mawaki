@@ -1,6 +1,6 @@
 /**
- * Start Next.js bound to woloyem-score-staging (.env.e2e.local) only.
- * Refuses ScorApp-XP / protect host. Does not kill an existing :3000 process.
+ * Start Next.js bound to staging only (.env.e2e.local).
+ * Whitelist: ALLOWED_SUPABASE_REF / hzn… only. Does not kill an existing :3000 process.
  *
  * Usage (PowerShell): stop the current next dev yourself if needed, then:
  *   node scripts/dev-e2e.mjs
@@ -8,9 +8,8 @@
 import { spawn } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { createServer } from "node:net"
+import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase.ts"
 
-const STAGING_HOST = "hznmtadobqfhumezdgbh.supabase.co"
-const PROTECT_HOST = "zkyjaslogpdujyeysjzw.supabase.co"
 const PORT = Number(process.env.PORT || 3000)
 
 function loadE2eLocal() {
@@ -25,7 +24,6 @@ function loadE2eLocal() {
     if (index <= 0 || line.startsWith("#")) continue
     const key = line.slice(0, index).trim()
     if (!key) continue
-    // Force E2E file over inherited shell / .env.local defaults for Supabase keys.
     env[key] = line.slice(index + 1).trim()
   }
   return env
@@ -58,14 +56,15 @@ const protectHost = hostOf(env.E2E_PROTECT_SUPABASE_URL)
 
 console.log(`E2E_HOST=${e2eHost || "MISSING"}`)
 console.log(`APP_HOST=${appHost || "MISSING"}`)
-console.log(`PROTECT_HOST=${protectHost || "MISSING"}`)
+console.log(`PROTECT_HOST=${protectHost || "unset"}`)
+console.log(`ALLOWED_HOST=${ALLOWED_SUPABASE_HOST}`)
 
-if (e2eHost !== STAGING_HOST || appHost !== STAGING_HOST) {
-  console.error("REFUSED: app/E2E URL must be woloyem-score-staging only")
+if (e2eHost !== ALLOWED_SUPABASE_HOST || appHost !== ALLOWED_SUPABASE_HOST) {
+  console.error(`REFUSED: app/E2E URL must be ${ALLOWED_SUPABASE_HOST} only`)
   process.exit(2)
 }
-if (e2eHost === PROTECT_HOST || appHost === PROTECT_HOST || protectHost === STAGING_HOST) {
-  console.error("REFUSED: ScorApp-XP / protect project conflict")
+if (protectHost && protectHost !== ALLOWED_SUPABASE_HOST) {
+  console.error(`REFUSED: E2E_PROTECT_SUPABASE_URL must be ${ALLOWED_SUPABASE_HOST} or unset`)
   process.exit(2)
 }
 if (!env.E2E_SUPABASE_ANON_KEY || !env.E2E_SUPABASE_SERVICE_ROLE_KEY) {
@@ -76,11 +75,10 @@ if (!env.E2E_SUPABASE_ANON_KEY || !env.E2E_SUPABASE_SERVICE_ROLE_KEY) {
 if (!(await portFree(PORT))) {
   console.error(`PORT_BUSY=${PORT}`)
   console.error("Stop the existing Next.js process manually, then re-run: node scripts/dev-e2e.mjs")
-  console.error("Do not point a casual npm run dev at staging while .env.local still targets protect.")
   process.exit(2)
 }
 
-console.log(`STARTING next dev on :${PORT} with staging env (no secrets printed)`)
+console.log(`Starting next dev on :${PORT} (staging whitelist)`)
 const child = spawn("npx", ["next", "dev", "-p", String(PORT)], {
   env,
   stdio: "inherit",

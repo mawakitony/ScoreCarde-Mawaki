@@ -41,13 +41,10 @@ export function platformEnvironment(): { code: "STAGING" | "PRODUCTION" | "LOCAL
   if (host === "hznmtadobqfhumezdgbh.supabase.co") {
     return { code: "STAGING", label: "STAGING", tone: "amber" }
   }
-  if (host === "zkyjaslogpdujyeysjzw.supabase.co") {
-    return { code: "PRODUCTION", label: "PRODUCTION (protect)", tone: "rose" }
-  }
   if (process.env.NODE_ENV !== "production") {
     return { code: "LOCAL", label: "LOCAL", tone: "sky" }
   }
-  if (host) return { code: "PRODUCTION", label: "PRODUCTION", tone: "rose" }
+  if (host) return { code: "UNKNOWN", label: "REFUSÉ (hors whitelist)", tone: "rose" }
   return { code: "UNKNOWN", label: "ENV INCONNU", tone: "zinc" }
 }
 

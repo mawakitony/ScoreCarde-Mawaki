@@ -1,13 +1,17 @@
 /**
- * Guard: refuse ScorApp-XP (zky…) unless ALLOW_XP=1.
+ * Whitelist: NEXT_PUBLIC_SUPABASE_URL must be ALLOWED_SUPABASE_REF only.
  * Require INTEGRATIONS_SECRET (length/format only — never print the value).
  * Loads .env.local for local runs; on Vercel uses process.env only.
  * Never prints secret values — hosts/refs only.
  */
 import { existsSync, readFileSync } from "node:fs"
+import {
+  ALLOWED_SUPABASE_REF,
+  assertAllowedSupabaseEnv,
+  isDisallowedSupabaseError,
+  supabaseRefFromUrl,
+} from "../lib/env/allowed-supabase.ts"
 
-const XP_REF = "zkyjaslogpdujyeysjzw"
-const STAGING_REF = "hznmtadobqfhumezdgbh"
 const INTEGRATIONS_SECRET_MIN_LENGTH = 32
 
 function loadDotEnv(file) {
@@ -27,20 +31,6 @@ function loadDotEnv(file) {
     }
     process.env[key] = value
   }
-}
-
-function hostOf(value) {
-  try {
-    return new URL(String(value ?? "")).host
-  } catch {
-    return ""
-  }
-}
-
-function refOf(value) {
-  const host = hostOf(value)
-  const m = host.match(/^([a-z0-9-]+)\.supabase\.co$/i)
-  return m ? m[1] : host || ""
 }
 
 /** Classify key format only — never print the value. */
@@ -74,26 +64,23 @@ if (!process.env.VERCEL) {
   loadDotEnv(".env.local")
 }
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ""
-const ref = refOf(url)
-const allowXp = process.env.ALLOW_XP === "1"
-const label =
-  ref === STAGING_REF ? "STAGING" : ref === XP_REF ? "XP" : ref ? `OTHER(${ref})` : "MISSING"
+const url =
+  process.env.NEXT_PUBLIC_SUPABASE_URL !== undefined
+    ? process.env.NEXT_PUBLIC_SUPABASE_URL
+    : process.env.SUPABASE_URL || ""
+const ref = supabaseRefFromUrl(url)
+const label = ref === ALLOWED_SUPABASE_REF ? "STAGING" : ref ? `OTHER(${ref})` : "MISSING"
 const anonFmt = keyFormat(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const serviceFmt = keyFormat(process.env.SUPABASE_SERVICE_ROLE_KEY)
 const integrations = integrationsSecretMeta(process.env.INTEGRATIONS_SECRET)
 
 console.log(`check-env: database=${label}`)
+console.log(`check-env: ALLOWED_SUPABASE_REF=${ALLOWED_SUPABASE_REF}`)
 console.log(`check-env: NEXT_PUBLIC_SUPABASE_ANON_KEY_FORMAT=${anonFmt}`)
 console.log(`check-env: SUPABASE_SERVICE_ROLE_KEY_FORMAT=${serviceFmt}`)
 console.log(
   `check-env: INTEGRATIONS_SECRET_STATUS=${integrations.status} FORMAT=${integrations.format} LENGTH=${integrations.length}`,
 )
-
-if (!url) {
-  console.error("check-env FAIL: NEXT_PUBLIC_SUPABASE_URL (or SUPABASE_URL) is missing.")
-  process.exit(1)
-}
 
 if (integrations.status === "missing") {
   console.error("")
@@ -114,27 +101,19 @@ if (integrations.status === "too_short") {
   process.exit(1)
 }
 
-if (ref === XP_REF && !allowXp) {
+try {
+  assertAllowedSupabaseEnv(process.env)
+} catch (error) {
   console.error("")
-  console.error("check-env FAIL: this workspace is pointing at ScorApp-XP (zkyjaslogpdujyeysjzw).")
-  console.error("WOLOYEM Score default is staging (hznmtadobqfhumezdgbh).")
-  console.error("")
-  console.error("Fix:")
-  console.error("  • Put staging keys in .env.local  (see .env.e2e.local / docs)")
-  console.error("  • Or run XP explicitly:  npm run dev:xp  (sets ALLOW_XP=1 + .env.xp.local)")
+  if (isDisallowedSupabaseError(error)) {
+    console.error(`check-env FAIL: ${error.message}`)
+  } else {
+    console.error(`check-env FAIL: ${error instanceof Error ? error.message : "supabase URL check failed"}`)
+  }
+  console.error(`  This repo may only use https://${ALLOWED_SUPABASE_REF}.supabase.co`)
   console.error("")
   process.exit(1)
 }
 
-if (ref === XP_REF && allowXp) {
-  console.log("check-env OK: XP allowed via ALLOW_XP=1")
-  process.exit(0)
-}
-
-if (ref === STAGING_REF) {
-  console.log("check-env OK: staging")
-  process.exit(0)
-}
-
-console.log(`check-env OK: non-XP host (${label})`)
+console.log("check-env OK: staging whitelist")
 process.exit(0)
