@@ -54,5 +54,7 @@ export function redactSecretsForModel(value: string) {
     .replace(/Bearer\s+[A-Za-z0-9._\-]+/gi, "[redacted]")
     .replace(/sk_(live|test)_[A-Za-z0-9]+/g, "[redacted]")
     .replace(/service_role/gi, "[redacted]")
+    .replace(/sb_secret_[A-Za-z0-9_]+/gi, "[redacted-sb-secret]")
+    .replace(/sb_publishable_[A-Za-z0-9_]+/gi, "[redacted-sb-publishable]")
     .replace(/AI_API_KEY\s*=\s*\S+/gi, "AI_API_KEY=[redacted]")
 }

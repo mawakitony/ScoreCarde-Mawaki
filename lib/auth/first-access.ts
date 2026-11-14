@@ -73,8 +73,16 @@ export function accessLink(appUrl: string) {
   return `${appUrl.replace(/\/$/, "")}/first-access`
 }
 
-export function sealSecretValue(value: string, secret: string) {
-  const key = createHash("sha256").update(secret).digest()
+function aesKey(material: string | Buffer) {
+  if (Buffer.isBuffer(material)) {
+    if (material.length !== 32) throw new Error("aes_key_invalid")
+    return material
+  }
+  return createHash("sha256").update(material).digest()
+}
+
+export function sealSecretValue(value: string, secret: string | Buffer) {
+  const key = aesKey(secret)
   const iv = randomBytes(12)
   const cipher = createCipheriv("aes-256-gcm", key, iv)
   const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()])
@@ -82,12 +90,12 @@ export function sealSecretValue(value: string, secret: string) {
   return `enc:${iv.toString("base64url")}.${tag.toString("base64url")}.${encrypted.toString("base64url")}`
 }
 
-export function openSecretValue(sealed: string, secret: string) {
+export function openSecretValue(sealed: string, secret: string | Buffer) {
   if (!sealed.startsWith("enc:")) return sealed
   const [iv, tag, data] = sealed.slice(4).split(".")
   if (!iv || !tag || !data) return null
   try {
-    const key = createHash("sha256").update(secret).digest()
+    const key = aesKey(secret)
     const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(iv, "base64url"))
     decipher.setAuthTag(Buffer.from(tag, "base64url"))
     return Buffer.concat([decipher.update(Buffer.from(data, "base64url")), decipher.final()]).toString("utf8")
@@ -102,7 +110,7 @@ export function firstAccessEmailPayload(input: {
   code: string
   appUrl: string
   hours: number
-  secret: string
+  secret: string | Buffer
 }) {
   return {
     organizationName: input.organizationName,
@@ -117,14 +125,14 @@ export function firstAccessIdempotencyKey(invitationId: string, codeHash: string
   return `first_access:${invitationId}:${codeHash.slice(0, 12)}`
 }
 
-export function sealProof(invitationId: string, secret: string, now = Date.now()) {
+export function sealProof(invitationId: string, secret: string | Buffer, now = Date.now()) {
   const exp = Math.floor(now / 1000) + PROOF_TTL_SECONDS
   const body = `${invitationId}.${exp}`
   const mac = createHmac("sha256", secret).update(body).digest("base64url")
   return `${body}.${mac}`
 }
 
-export function openProof(value: string, secret: string, now = Date.now()) {
+export function openProof(value: string, secret: string | Buffer, now = Date.now()) {
   const [id, expRaw, mac] = value.split(".")
   if (!id || !expRaw || !mac || value.split(".").length !== 3) return null
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null

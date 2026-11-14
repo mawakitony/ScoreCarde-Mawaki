@@ -32,6 +32,7 @@ import { getAppUrl } from "@/lib/env"
 import { activeSuspension } from "@/lib/platform/data"
 import { allowRate } from "@/lib/security/rate"
 import { writeActivity } from "@/lib/audit/write"
+import { deriveAppSecret, isIntegrationsSecretError } from "@/lib/security/app-secret"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { loginSchema } from "@/lib/validators/auth"
@@ -70,8 +71,16 @@ type InvitationRow = {
   invitation_type: string
 }
 
-function proofSecret() {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY ?? null
+function sealKey() {
+  return deriveAppSecret("first-access-seal")
+}
+
+function cookieKey() {
+  return deriveAppSecret("first-access-cookie")
+}
+
+function configSecretError() {
+  return "Configuration serveur incomplète (INTEGRATIONS_SECRET)." as const
 }
 
 function storageError(message: string) {
@@ -162,8 +171,13 @@ async function organizationActive(organizationId: string) {
 }
 
 async function enqueueAccess(input: { organizationId: string; invitationId: string; email: string; role: string; code: string; codeHash: string }) {
-  const secret = proofSecret()
-  if (!secret) return { queued: false as const }
+  let secret: Buffer
+  try {
+    secret = sealKey()
+  } catch (error) {
+    if (isIntegrationsSecretError(error)) return { queued: false as const, error: configSecretError() }
+    throw error
+  }
   const admin = createAdminClient()
   const { data: organization } = await admin.from("organizations").select("name, default_language").eq("id", input.organizationId).maybeSingle()
   const hours = firstAccessHours(process.env.FIRST_ACCESS_CODE_HOURS)
@@ -244,7 +258,7 @@ async function insertAccess(input: { organizationId: string; email: string; role
     code: issued.display,
     codeHash: issued.hash,
   })
-  if (!queued.queued) return { error: "L'accès est préparé, mais l'email n'a pas pu être mis en file." }
+  if (!queued.queued) return { error: "error" in queued && queued.error ? queued.error : "L'accès est préparé, mais l'email n'a pas pu être mis en file." }
   return { ok: true as const, code: issued.display, expiresAt: expires }
 }
 
@@ -264,7 +278,7 @@ async function storeCode(invitationId: string, organizationId: string, email: st
   if (error) return { error: storageError(error.message) }
   await retireAccessEmails(organizationId, email)
   const queued = await enqueueAccess({ organizationId, invitationId, email, role, code: issued.display, codeHash: issued.hash })
-  if (!queued.queued) return { error: "L'accès est préparé, mais l'email n'a pas pu être mis en file." }
+  if (!queued.queued) return { error: "error" in queued && queued.error ? queued.error : "L'accès est préparé, mais l'email n'a pas pu être mis en file." }
   return { ok: true as const, code: issued.display, expiresAt: expires }
 }
 
@@ -379,8 +393,13 @@ async function clientAddress() {
 }
 
 async function rememberProof(invitationId: string) {
-  const secret = proofSecret()
-  if (!secret) return false
+  let secret: Buffer
+  try {
+    secret = cookieKey()
+  } catch (error) {
+    if (isIntegrationsSecretError(error)) return false
+    throw error
+  }
   const jar = await cookies()
   jar.set(ACCESS_PROOF_COOKIE, sealProof(invitationId, secret), {
     httpOnly: true,
@@ -393,8 +412,13 @@ async function rememberProof(invitationId: string) {
 }
 
 async function readProof() {
-  const secret = proofSecret()
-  if (!secret) return null
+  let secret: Buffer
+  try {
+    secret = cookieKey()
+  } catch (error) {
+    if (isIntegrationsSecretError(error)) return null
+    throw error
+  }
   const jar = await cookies()
   return openProof(jar.get(ACCESS_PROOF_COOKIE)?.value ?? "", secret)
 }

@@ -3,6 +3,7 @@ import "server-only"
 import { activeAiProvider } from "@/lib/ai/provider"
 import { REPORT_AI_PROMPT_VERSION, explainWithoutChangingScore, sanitizeAiAnalysis, type AIReportInput } from "@/lib/ai/prompts"
 import { decryptSecret } from "@/lib/integrations/crypto"
+import { deriveAppSecret, isIntegrationsSecretError } from "@/lib/security/app-secret"
 import { publishIntegrationEvent } from "@/lib/integrations/dispatch"
 import { consumeMonthly, loadEntitlements, monthlyUsage } from "@/lib/billing/account"
 import { hasFeature, withinLimit } from "@/lib/billing/entitlements"
@@ -362,8 +363,7 @@ async function runEmail(admin: Admin, job: { id: string; organization_id: string
     : { data: null }
   const settings = await loadSettings(admin, report.organization_id)
   const { data: integration } = await admin.from("integrations").select("encrypted_credentials, status").eq("organization_id", report.organization_id).eq("provider", "brevo").eq("status", "active").limit(1).maybeSingle()
-  const secret = process.env.INTEGRATIONS_SECRET
-  const apiKey = integration?.encrypted_credentials && secret ? safeDecrypt(integration.encrypted_credentials, secret) : null
+  const apiKey = integration?.encrypted_credentials ? safeDecrypt(integration.encrypted_credentials) : null
   if (!person?.email || !apiKey || !settings.email) {
     await finishJob(admin, job.id, "completed", "email_skipped", null)
     return
@@ -397,10 +397,11 @@ async function runEmail(admin: Admin, job: { id: string; organization_id: string
   await finishJob(admin, job.id, "completed", null, null)
 }
 
-function safeDecrypt(packed: string, secret: string) {
+function safeDecrypt(packed: string) {
   try {
-    return decryptSecret(packed, secret)
-  } catch {
+    return decryptSecret(packed, deriveAppSecret("integrations"))
+  } catch (error) {
+    if (isIntegrationsSecretError(error)) return null
     return null
   }
 }

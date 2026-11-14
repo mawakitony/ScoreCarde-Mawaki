@@ -4,7 +4,12 @@ export function stripSecrets(row: Record<string, unknown>) {
   const copy: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {
     if (SECRET_KEYS.includes(key)) continue
-    if (typeof value === "string" && /sk_live|sk_test|service_role|AI_API_KEY/i.test(value)) continue
+    if (
+      typeof value === "string" &&
+      /sk_live|sk_test|service_role|sb_secret_|sb_publishable_|AI_API_KEY/i.test(value)
+    ) {
+      continue
+    }
     copy[key] = value
   }
   return copy

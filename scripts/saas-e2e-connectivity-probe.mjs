@@ -49,7 +49,7 @@ if (health.error) {
   if (/schema cache|does not exist|Could not find/i.test(msg)) {
     console.log("HINT=Migrations may be missing on the E2E project")
   } else if (/JWT|Invalid API key|invalid_api_key|401|403/i.test(msg)) {
-    console.log("HINT=Service role key may be wrong format — use legacy service_role JWT from Project Settings → API if sb_secret_ is rejected")
+    console.log("HINT=Elevated key rejected — prefer sb_secret_ (or legacy service_role JWT) in E2E_SUPABASE_SERVICE_ROLE_KEY; @supabase/supabase-js>=2.110 sends sb_ keys as apikey only")
   } else {
     console.log("HINT=Admin query failed (message redacted)")
   }

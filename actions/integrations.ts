@@ -15,6 +15,7 @@ import { deliverWebhook } from "@/lib/integrations/webhook"
 import { WEBHOOK_EVENTS } from "@/lib/integrations/version"
 import { generateApiKey } from "@/lib/integrations/keys"
 import { parseConditions } from "@/lib/integrations/rules"
+import { deriveAppSecret, isIntegrationsSecretError } from "@/lib/security/app-secret"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import type { Json } from "@/types/database"
@@ -35,10 +36,13 @@ function refresh() {
   revalidatePath("/dashboard/settings/integrations")
 }
 
-function secretKey() {
-  const value = process.env.INTEGRATIONS_SECRET
-  if (!value || value.length < 16) return null
-  return value
+function credentialKey() {
+  try {
+    return deriveAppSecret("integrations")
+  } catch (error) {
+    if (isIntegrationsSecretError(error)) return null
+    throw error
+  }
 }
 
 export async function saveWebhook(input: {
@@ -56,8 +60,8 @@ export async function saveWebhook(input: {
   const events = eventsSchema.safeParse(input.events)
   const urlIssue = await assertPublicWebhookUrl(input.url)
   if (!name.success || !events.success || urlIssue) return { error: urlIssue ?? "Configuration invalide." }
-  const key = secretKey()
-  if (!key) return { error: "INTEGRATIONS_SECRET est absente." }
+  const key = credentialKey()
+  if (!key) return { error: "INTEGRATIONS_SECRET est absente ou trop courte." }
   const config = {
     url: input.url,
     events: events.data,
@@ -110,8 +114,8 @@ export async function deleteWebhook(id: string) {
 export async function sendTestWebhook(id: string) {
   const context = await editor()
   if ("error" in context || !z.string().uuid().safeParse(id).success) return { error: "Permission refusée." }
-  const key = secretKey()
-  if (!key) return { error: "INTEGRATIONS_SECRET est absente." }
+  const key = credentialKey()
+  if (!key) return { error: "INTEGRATIONS_SECRET est absente ou trop courte." }
   const admin = createAdminClient()
   const { data: integration } = await admin.from("integrations").select("id, config, encrypted_credentials, status").eq("id", id).eq("organization_id", context.organizationId).eq("provider", "webhook").maybeSingle()
   if (!integration?.encrypted_credentials) return { error: "Webhook introuvable." }
@@ -184,8 +188,8 @@ export async function saveBrevo(input: { apiKey?: string; listId?: string; enabl
   const context = await editor()
   if ("error" in context) return context
   if (!(await organizationHasFeature(context.organizationId, "brevo"))) return { error: "Brevo est disponible à partir du plan Pro." }
-  const key = secretKey()
-  if (!key) return { error: "INTEGRATIONS_SECRET est absente." }
+  const key = credentialKey()
+  if (!key) return { error: "INTEGRATIONS_SECRET est absente ou trop courte." }
   const listId = input.listId?.trim() ? Number(input.listId) : null
   if (input.listId?.trim() && !Number.isInteger(listId)) return { error: "Liste invalide." }
   const { data: existing } = await context.supabase.from("integrations").select("id").eq("organization_id", context.organizationId).eq("provider", "brevo").maybeSingle()

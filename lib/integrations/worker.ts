@@ -2,6 +2,7 @@ import "server-only"
 
 import { brevoContact, pushBrevoContact } from "@/lib/integrations/brevo"
 import { decryptSecret } from "@/lib/integrations/crypto"
+import { deriveAppSecret, isIntegrationsSecretError } from "@/lib/security/app-secret"
 import { isLeadStatus } from "@/lib/leads/qualification"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { Json } from "@/types/database"
@@ -296,11 +297,11 @@ async function runBrevo(admin: Admin, job: ClaimedJob) {
 }
 
 function readSecret(packed: string | null) {
-  const secret = process.env.INTEGRATIONS_SECRET
-  if (!packed || !secret) return null
+  if (!packed) return null
   try {
-    return decryptSecret(packed, secret)
-  } catch {
+    return decryptSecret(packed, deriveAppSecret("integrations"))
+  } catch (error) {
+    if (isIntegrationsSecretError(error)) return null
     return null
   }
 }

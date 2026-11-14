@@ -43,6 +43,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR_E2E_PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+# App crypto master (openssl rand -hex 32). Required by check-env / first-access / integrations.
+INTEGRATIONS_SECRET=
 
 # Protected real/dev project — never seed this host.
 E2E_PROTECT_SUPABASE_URL=${protect}

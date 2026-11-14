@@ -99,6 +99,9 @@ test("first access creates a password on the invited account and never an organi
   assert.equal(action.includes("createUser"), true)
   assert.match(action, /email_confirm:\s*true/)
   assert.equal(action.includes("console."), false)
+  assert.match(action, /deriveAppSecret\("first-access-seal"\)/)
+  assert.match(action, /deriveAppSecret\("first-access-cookie"\)/)
+  assert.equal(action.includes("SUPABASE_SERVICE_ROLE_KEY"), false)
 })
 
 test("first access email keeps the code out of the url and out of the database payload", () => {
@@ -144,6 +147,9 @@ test("first access codes are removed from logs and the proof cookie is not the c
   assert.equal(proof.includes(code.display), false)
   assert.equal(openProof(proof, "test-secret", 1_700_000_000_000)?.invitationId, "11111111-1111-4111-8111-111111111111")
   assert.equal(openProof(proof, "test-secret", 1_700_000_000_000 + 16 * 60 * 1000), null)
+  const worker = readFileSync(new URL("../email/worker.ts", import.meta.url), "utf8")
+  assert.match(worker, /deriveAppSecret\("first-access-seal"\)/)
+  assert.equal(worker.includes("SUPABASE_SERVICE_ROLE_KEY"), false)
 })
 
 test("first access duration and invitation status stay configurable", () => {

@@ -6,6 +6,7 @@ import { isBrevoActivationFailure, isBrevoTransactionalConfigured } from "@/lib/
 import { nextEmailAttempt, renderEmail, type EmailTemplate } from "@/lib/email/templates"
 import { recordHeartbeat } from "@/lib/platform/heartbeat"
 import { log } from "@/lib/observability/logger"
+import { deriveAppSecret, isIntegrationsSecretError } from "@/lib/security/app-secret"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 export async function processEmailJobs() {
@@ -16,7 +17,21 @@ export async function processEmailJobs() {
   for (const job of data ?? []) {
     const claimed = await admin.from("email_jobs").update({ status: "processing", attempts: job.attempts + 1 }).eq("id", job.id).eq("status", "pending").select("id")
     if (!claimed.data?.length) continue
-    const payload = unsealRecord(record(job.payload))
+    let payload: Record<string, string> | null
+    try {
+      payload = unsealRecord(record(job.payload))
+    } catch (error) {
+      if (isIntegrationsSecretError(error)) {
+        await admin.from("email_jobs").update({
+          status: "pending",
+          next_run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          last_error: error.code,
+        }).eq("id", job.id)
+        log("error", "email.integrations_secret", { code: error.code, template: job.template })
+        continue
+      }
+      throw error
+    }
     if (!payload || (job.template === "first_access" && !payload.accessCode)) {
       const next = nextEmailAttempt(job.attempts)
       await admin.from("email_jobs").update({
@@ -84,14 +99,15 @@ function record(value: unknown) {
 }
 
 function unsealRecord(payload: Record<string, string>) {
-  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ""
+  // No service_role fallback — seal material is HKDF(INTEGRATIONS_SECRET, "first-access-seal").
+  const seal = deriveAppSecret("first-access-seal")
   const next: Record<string, string> = {}
   for (const [key, value] of Object.entries(payload)) {
     if (!value.startsWith("enc:")) {
       next[key] = value
       continue
     }
-    const opened = openSecretValue(value, secret)
+    const opened = openSecretValue(value, seal)
     if (!opened) return null
     next[key] = opened
   }

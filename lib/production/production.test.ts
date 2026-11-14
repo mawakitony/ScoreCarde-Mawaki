@@ -77,6 +77,7 @@ test("logs and storage paths drop secrets and traversal", () => {
 test("production env and CSP stay strict", () => {
   assert.deepEqual(missingProductionEnv({ NODE_ENV: "development" }), [])
   assert.ok(missingProductionEnv({ NODE_ENV: "production" }).includes("CRON_SECRET"))
+  assert.ok(missingProductionEnv({ NODE_ENV: "production" }).includes("INTEGRATIONS_SECRET"))
   assert.equal(e2eDatabaseAllowed({ NODE_ENV: "production", E2E_SUPABASE_URL: "https://e2e.supabase.co" }), false)
   assert.equal(e2eDatabaseAllowed({ NODE_ENV: "test", E2E_SUPABASE_URL: "https://e2e.supabase.co", NEXT_PUBLIC_SUPABASE_URL: "https://prod.supabase.co" }), true)
   assert.equal(e2eDatabaseAllowed({ NODE_ENV: "test", E2E_SUPABASE_URL: "https://same.supabase.co", NEXT_PUBLIC_SUPABASE_URL: "https://same.supabase.co" }), false)
