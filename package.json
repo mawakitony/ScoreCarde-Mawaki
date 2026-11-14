@@ -2,8 +2,11 @@
   "name": "woloyem-score",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "check-env": "node --experimental-strip-types --import ./test/register.mjs scripts/check-env.mjs",
+    "check-env": "node scripts/check-env.mjs",
     "predev": "npm run check-env",
     "prebuild": "npm run check-env",
     "dev": "next dev",

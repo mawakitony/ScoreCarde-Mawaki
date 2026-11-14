@@ -14,7 +14,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { createDecipheriv, createHash, hkdfSync } from "node:crypto"
 import { createClient } from "@supabase/supabase-js"
 
-import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase.ts"
+import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase-ref.mjs"
 
 const STAGING = ALLOWED_SUPABASE_HOST
 const SALT = "woloyem-app-secret-v1"

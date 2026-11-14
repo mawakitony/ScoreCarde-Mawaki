@@ -2,6 +2,7 @@
  * Whitelist: NEXT_PUBLIC_SUPABASE_URL must be ALLOWED_SUPABASE_REF only.
  * Require INTEGRATIONS_SECRET (length/format only — never print the value).
  * Loads .env.local for local runs; on Vercel uses process.env only.
+ * Plain Node 22 — no TypeScript strip / register import.
  * Never prints secret values — hosts/refs only.
  */
 import { existsSync, readFileSync } from "node:fs"
@@ -10,7 +11,7 @@ import {
   assertAllowedSupabaseEnv,
   isDisallowedSupabaseError,
   supabaseRefFromUrl,
-} from "../lib/env/allowed-supabase.ts"
+} from "../lib/env/allowed-supabase-ref.mjs"
 
 const INTEGRATIONS_SECRET_MIN_LENGTH = 32
 

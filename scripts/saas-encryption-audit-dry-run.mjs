@@ -9,7 +9,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { createClient } from "@supabase/supabase-js"
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto"
 
-import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase.ts"
+import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase-ref.mjs"
 
 const STAGING = ALLOWED_SUPABASE_HOST
 

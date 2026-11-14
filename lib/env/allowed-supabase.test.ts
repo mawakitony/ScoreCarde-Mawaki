@@ -11,10 +11,13 @@ import {
   supabaseRefFromUrl,
 } from "@/lib/env/allowed-supabase"
 
-test("ALLOWED_SUPABASE_REF is the single staging whitelist", () => {
+test("ALLOWED_SUPABASE_REF is the single staging whitelist shared with .mjs", async () => {
   assert.equal(ALLOWED_SUPABASE_REF, "hznmtadobqfhumezdgbh")
   assert.equal(ALLOWED_SUPABASE_HOST, "hznmtadobqfhumezdgbh.supabase.co")
   assert.equal(ALLOWED_SUPABASE_URL, "https://hznmtadobqfhumezdgbh.supabase.co")
+  const shared = await import("./allowed-supabase-ref.mjs")
+  assert.equal(shared.ALLOWED_SUPABASE_REF, ALLOWED_SUPABASE_REF)
+  assert.equal(shared.ALLOWED_SUPABASE_HOST, ALLOWED_SUPABASE_HOST)
 })
 
 test("hzn URL is allowed; zky / empty / other refs fail", () => {

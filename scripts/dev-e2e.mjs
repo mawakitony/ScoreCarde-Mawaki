@@ -8,7 +8,7 @@
 import { spawn } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { createServer } from "node:net"
-import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase.ts"
+import { ALLOWED_SUPABASE_HOST } from "../lib/env/allowed-supabase-ref.mjs"
 
 const PORT = Number(process.env.PORT || 3000)
 
