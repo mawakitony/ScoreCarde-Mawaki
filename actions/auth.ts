@@ -1,11 +1,12 @@
 "use server"
 
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { getAppUrl, safeNextPath } from "@/lib/env"
 import { invitationKeepsSession } from "@/lib/auth/invite-session"
 import {
   PASSWORD_RESET_NEUTRAL_MESSAGE,
+  buildMagicLinkRedirectTo,
+  buildPasswordResetRedirectTo,
   passwordResetRateLimitMessage,
 } from "@/lib/auth/password-reset"
 import { createClient } from "@/lib/supabase/server"
@@ -42,14 +43,6 @@ function needsOrganizationOnboarding(message: string) {
   return /organisation_required/i.test(message)
 }
 
-async function redirectOrigin() {
-  const headerStore = await headers()
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host")
-  const proto = headerStore.get("x-forwarded-proto") ?? "http"
-  if (host) return `${proto}://${host}`
-  return getAppUrl()
-}
-
 export async function signIn(formData: FormData) {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
@@ -82,7 +75,6 @@ export async function signUp(formData: FormData) {
   })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." }
 
-  const origin = await redirectOrigin()
   const next = safeNextPath(String(formData.get("next") ?? ""))
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signUp({
@@ -90,7 +82,7 @@ export async function signUp(formData: FormData) {
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      emailRedirectTo: buildMagicLinkRedirectTo(getAppUrl(), next),
     },
   })
 
@@ -114,12 +106,11 @@ export async function sendMagicLink(formData: FormData) {
   const parsed = magicLinkSchema.safeParse({ email: formData.get("email") })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Email invalide." }
 
-  const origin = await redirectOrigin()
   const next = safeNextPath(String(formData.get("next") ?? ""))
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
-    options: { emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}` },
+    options: { emailRedirectTo: buildMagicLinkRedirectTo(getAppUrl(), next) },
   })
 
   if (error) return { error: "Le lien magique n'a pas pu être envoyé." }
@@ -131,10 +122,9 @@ export async function requestPasswordReset(formData: FormData) {
   const parsed = forgotPasswordSchema.safeParse({ email: formData.get("email") })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Email invalide." }
 
-  const appUrl = getAppUrl()
   const supabase = await createClient()
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${appUrl}/auth/confirm?next=${encodeURIComponent("/reset-password")}`,
+    redirectTo: buildPasswordResetRedirectTo(getAppUrl()),
   })
 
   if (error) {

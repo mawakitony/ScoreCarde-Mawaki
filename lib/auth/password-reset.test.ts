@@ -6,7 +6,10 @@ import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_RESET_NEUTRAL_MESSAGE,
   PASSWORD_UPDATED_LOGIN_MESSAGE,
+  buildMagicLinkRedirectTo,
+  buildPasswordResetRedirectTo,
   isPasswordResetNext,
+  parseAuthConfirmSearchParams,
   passwordMeetsPolicy,
   passwordResetRateLimitMessage,
   passwordsMatch,
@@ -83,4 +86,23 @@ test("safeNextPath allows reset-password recovery landing", () => {
   assert.equal(isPasswordResetNext("/reset-password"), true)
   assert.equal(safeNextPath("/forgot-password"), "/dashboard")
   assert.equal(safeNextPath("https://evil.test"), "/dashboard")
+})
+
+test("RedirectTo builders keep query so templates can append &token_hash", () => {
+  const reset = buildPasswordResetRedirectTo("http://localhost:3000/")
+  assert.equal(reset, "http://localhost:3000/auth/confirm?next=%2Freset-password")
+  assert.equal(reset.includes("?"), true)
+  const magic = buildMagicLinkRedirectTo("https://score-card-mawaki.vercel.app", "/dashboard")
+  assert.equal(magic, "https://score-card-mawaki.vercel.app/auth/callback?next=%2Fdashboard")
+})
+
+test("confirm parses RedirectTo&token_hash&type recovery format", () => {
+  const redirectTo = buildPasswordResetRedirectTo("http://localhost:3000")
+  const href = `${redirectTo}&token_hash=abcTOKEN&type=recovery`
+  const url = new URL(href)
+  const parsed = parseAuthConfirmSearchParams(url.searchParams)
+  assert.equal(parsed.next, "/reset-password")
+  assert.equal(parsed.token_hash, "abcTOKEN")
+  assert.equal(parsed.type, "recovery")
+  assert.equal(safeNextPath(parsed.next), "/reset-password")
 })

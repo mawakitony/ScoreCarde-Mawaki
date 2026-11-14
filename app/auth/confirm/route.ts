@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { isPasswordResetNext } from "@/lib/auth/password-reset"
+import { isPasswordResetNext, parseAuthConfirmSearchParams } from "@/lib/auth/password-reset"
 import { safeNextPath } from "@/lib/env"
 import { createClient } from "@/lib/supabase/server"
 import type { EmailOtpType } from "@supabase/supabase-js"
@@ -15,11 +15,13 @@ const OTP_TYPES = new Set<string>([
 
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const nextRaw = url.searchParams.get("next")
-  const next = safeNextPath(nextRaw)
-  const tokenHash = url.searchParams.get("token_hash")
-  const typeParam = url.searchParams.get("type")
-  const code = url.searchParams.get("code")
+  // Supports template: {{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=recovery
+  // where RedirectTo is already …/auth/confirm?next=/reset-password
+  const parsed = parseAuthConfirmSearchParams(url.searchParams)
+  const next = safeNextPath(parsed.next)
+  const tokenHash = parsed.token_hash
+  const typeParam = parsed.type
+  const code = parsed.code
 
   const supabase = await createClient()
 
