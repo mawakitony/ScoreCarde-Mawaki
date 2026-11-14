@@ -14,7 +14,7 @@ import {
   PlatformTh,
 } from "@/components/platform/page-chrome"
 import { StatusBadge } from "@/components/platform/status-badge"
-import { isBrevoTransactionalConfigured } from "@/lib/email/brevo-ready"
+import { isEmailProviderConfigured } from "@/lib/email/provider"
 import { requirePlatformAdmin } from "@/lib/platform/auth"
 import { maskEmail, pageWindow } from "@/lib/platform/rules"
 import { getActiveSupportScope } from "@/lib/platform/support-scope"
@@ -38,7 +38,7 @@ export default async function PlatformNotificationsPage({
   const statusFilter = STATUSES.includes(params.status as JobStatus) ? (params.status as JobStatus) : null
   const query = (params.q ?? "").replace(/[%_,]/g, "").trim()
   const templateFilter = (params.template ?? "").trim()
-  const brevoReady = isBrevoTransactionalConfigured()
+  const brevoReady = isEmailProviderConfigured()
   const snapshot = Date.parse(new Date().toISOString())
   const sinceIso = new Date(snapshot - 30 * 864e5).toISOString()
   const orgId = supportScope?.organizationId

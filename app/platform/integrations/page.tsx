@@ -13,7 +13,7 @@ import {
   PlatformTh,
 } from "@/components/platform/page-chrome"
 import { StatusBadge } from "@/components/platform/status-badge"
-import { isBrevoTransactionalConfigured } from "@/lib/email/brevo-ready"
+import { getEmailProvider, isEmailProviderConfigured } from "@/lib/email/provider"
 import { requirePlatformAdmin } from "@/lib/platform/auth"
 import { integrationHealth, rangeStart } from "@/lib/platform/rules"
 import { getActiveSupportScope } from "@/lib/platform/support-scope"
@@ -69,7 +69,8 @@ export default async function PlatformIntegrationsPage({
     const failures = failedCount.get(r.id) ?? 0
     return integrationHealth({ failures24h: failures, dead: deadIds.has(r.id) }) === "degraded"
   }).length
-  const brevoReady = isBrevoTransactionalConfigured()
+  const emailReady = isEmailProviderConfigured()
+  const emailProvider = getEmailProvider()
   const stripeConfigured = Boolean(
     process.env.STRIPE_SECRET_KEY?.startsWith("sk_test") || process.env.STRIPE_SECRET_KEY?.startsWith("sk_live"),
   )
@@ -97,10 +98,18 @@ export default async function PlatformIntegrationsPage({
           note="Présence de variable ≠ paiements confirmés."
         />
         <ServiceCard
-          title="Brevo"
-          detail={brevoReady ? "Configuration transactionnelle détectée." : "Brevo non configuré."}
-          ok={brevoReady}
-          note="Ne simule pas de livraisons réussies."
+          title={emailProvider === "smtp" ? "E-mail (SMTP)" : "Brevo"}
+          detail={
+            emailReady
+              ? emailProvider === "smtp"
+                ? "SMTP configuré (EMAIL_PROVIDER=smtp)."
+                : "Configuration transactionnelle Brevo détectée."
+              : emailProvider === "smtp"
+                ? "SMTP non configuré."
+                : "Brevo non configuré."
+          }
+          ok={emailReady}
+          note="Présence de variables ≠ livraisons réussies."
         />
         <ServiceCard title="WhatsApp" detail="Connecteur non disponible." ok={false} note="Indisponible par conception." />
       </section>

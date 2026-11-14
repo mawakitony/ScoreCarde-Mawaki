@@ -116,5 +116,81 @@ try {
   process.exit(1)
 }
 
+// --- Email provider (circuit B): presence/format only — never print values ---
+const emailProviderRaw = String(process.env.EMAIL_PROVIDER || "smtp").trim().toLowerCase()
+const emailProvider = emailProviderRaw === "brevo" ? "brevo" : "smtp"
+
+function emailShaped(value) {
+  const v = String(value ?? "").trim()
+  if (!v) return "missing"
+  return v.includes("@") && v.indexOf("@") > 0 && v.indexOf("@") < v.length - 1 ? "email_shaped" : "invalid"
+}
+
+function hostShaped(value) {
+  const v = String(value ?? "").trim()
+  if (!v) return "missing"
+  return /^[A-Za-z0-9.-]+$/.test(v) ? "hostname" : "invalid"
+}
+
+function portShaped(value) {
+  const v = String(value ?? "").trim()
+  if (!v) return "missing"
+  const n = Number(v)
+  return Number.isInteger(n) && n > 0 && n <= 65535 ? "port" : "invalid"
+}
+
+function presentOpaque(value) {
+  const v = String(value ?? "").trim()
+  if (!v) return { status: "missing", format: "missing", length: 0 }
+  return { status: "ok", format: "opaque", length: v.length }
+}
+
+function numericOrEmpty(value, label) {
+  const v = String(value ?? "").trim()
+  if (!v) return { status: "default", format: "empty" }
+  const n = Number(v)
+  if (!Number.isFinite(n) || n <= 0) return { status: "invalid", format: "not_positive_number" }
+  return { status: "ok", format: "positive_number" }
+}
+
+const smtpHost = hostShaped(process.env.SMTP_HOST)
+const smtpPort = portShaped(process.env.SMTP_PORT)
+const smtpUser = presentOpaque(process.env.SMTP_USER)
+const smtpPassword = presentOpaque(process.env.SMTP_PASSWORD)
+const emailFrom = emailShaped(process.env.EMAIL_FROM)
+const emailFromName = presentOpaque(process.env.EMAIL_FROM_NAME)
+const dailyLimit = numericOrEmpty(process.env.EMAIL_DAILY_LIMIT, "EMAIL_DAILY_LIMIT")
+const ratePerMinute = numericOrEmpty(process.env.EMAIL_RATE_PER_MINUTE, "EMAIL_RATE_PER_MINUTE")
+
+console.log(`check-env: EMAIL_PROVIDER=${emailProvider}`)
+console.log(`check-env: SMTP_HOST_FORMAT=${smtpHost}`)
+console.log(`check-env: SMTP_PORT_FORMAT=${smtpPort}`)
+console.log(`check-env: SMTP_USER_STATUS=${smtpUser.status} LENGTH=${smtpUser.length}`)
+console.log(`check-env: SMTP_PASSWORD_STATUS=${smtpPassword.status} LENGTH=${smtpPassword.length}`)
+console.log(`check-env: EMAIL_FROM_FORMAT=${emailFrom}`)
+console.log(`check-env: EMAIL_FROM_NAME_STATUS=${emailFromName.status}`)
+console.log(`check-env: EMAIL_DAILY_LIMIT_STATUS=${dailyLimit.status} FORMAT=${dailyLimit.format}`)
+console.log(`check-env: EMAIL_RATE_PER_MINUTE_STATUS=${ratePerMinute.status} FORMAT=${ratePerMinute.format}`)
+
+if (emailProvider === "smtp") {
+  const smtpProblems = []
+  if (smtpHost === "missing" || smtpHost === "invalid") smtpProblems.push(`SMTP_HOST(${smtpHost})`)
+  if (smtpPort === "missing" || smtpPort === "invalid") smtpProblems.push(`SMTP_PORT(${smtpPort})`)
+  if (smtpUser.status !== "ok") smtpProblems.push("SMTP_USER(missing)")
+  if (smtpPassword.status !== "ok") smtpProblems.push("SMTP_PASSWORD(missing)")
+  if (emailFrom === "missing" || emailFrom === "invalid") smtpProblems.push(`EMAIL_FROM(${emailFrom})`)
+  if (dailyLimit.status === "invalid") smtpProblems.push("EMAIL_DAILY_LIMIT(invalid)")
+  if (ratePerMinute.status === "invalid") smtpProblems.push("EMAIL_RATE_PER_MINUTE(invalid)")
+  if (smtpProblems.length) {
+    console.error("")
+    console.error("check-env FAIL: EMAIL_PROVIDER=smtp requires valid SMTP settings (values never printed).")
+    console.error(`  Issues: ${smtpProblems.join(", ")}`)
+    console.error("  Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_FROM in .env.local / Vercel.")
+    console.error("  Or set EMAIL_PROVIDER=brevo to use the legacy Brevo API path.")
+    console.error("")
+    process.exit(1)
+  }
+}
+
 console.log("check-env OK: staging whitelist")
 process.exit(0)
