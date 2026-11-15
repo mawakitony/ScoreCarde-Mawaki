@@ -1,7 +1,7 @@
 import "server-only"
 
 import { enqueueEmail } from "@/lib/email/queue"
-import { isBrevoTransactionalConfigured } from "@/lib/email/brevo-ready"
+import { isEmailProviderConfigured } from "@/lib/email/provider"
 import { getAppUrl } from "@/lib/env"
 import { TRIAL_REMINDER_OFFSETS } from "@/lib/platform/reminder-policy"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -11,10 +11,10 @@ export { TRIAL_REMINDER_OFFSETS }
 
 /**
  * Enqueue trial reminder ladder (J-7 / J-3 / J-1 / J-0) with per-day idempotency.
- * Skips entirely when Brevo transactional env is not configured.
+ * Skips when neither SMTP nor Brevo transactional env is configured.
  */
 export async function enqueueTrialReminders(now = Date.now()) {
-  if (!isBrevoTransactionalConfigured()) return { queued: 0, skipped: "brevo_not_configured" as const }
+  if (!isEmailProviderConfigured()) return { queued: 0, skipped: "email_not_configured" as const }
 
   const admin = createAdminClient()
   const billingUrl = `${getAppUrl()}/dashboard/settings/billing`
@@ -76,7 +76,7 @@ export async function enqueueOwnerBillingEmail(input: {
   idempotencyKey: string
   extra?: Record<string, string>
 }) {
-  if (!isBrevoTransactionalConfigured()) return { queued: false as const, skipped: "brevo_not_configured" as const }
+  if (!isEmailProviderConfigured()) return { queued: false as const, skipped: "email_not_configured" as const }
   const admin = createAdminClient()
   const email = await ownerEmailFor(admin, input.organizationId)
   if (!email) return { queued: false as const, skipped: "no_owner" as const }

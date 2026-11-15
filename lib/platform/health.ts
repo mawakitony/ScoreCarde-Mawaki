@@ -13,7 +13,9 @@ export async function loadHealth(): Promise<{ name: string; status: HealthStatus
   const heartbeats = await workerStatus()
   const storage = await storageStatus()
   const ai = activeAiProvider().configured ? "healthy" as const : "not_configured" as const
-  const brevo = process.env.BREVO_API_KEY ? "healthy" as const : "not_configured" as const
+  const { getEmailProvider, isEmailProviderConfigured } = await import("@/lib/email/provider")
+  const emailReady = isEmailProviderConfigured() ? ("healthy" as const) : ("not_configured" as const)
+  const emailLabel = getEmailProvider() === "brevo" ? "Brevo" : "Email (SMTP)"
   return [
     { name: "Database", status: database },
     { name: "Stripe", status: stripe },
@@ -23,7 +25,7 @@ export async function loadHealth(): Promise<{ name: string; status: HealthStatus
     { name: "Maintenance", status: heartbeats.maintenance_worker },
     { name: "Storage", status: storage },
     { name: "AI provider", status: ai },
-    { name: "Brevo", status: brevo },
+    { name: emailLabel, status: emailReady },
   ]
 }
 
@@ -95,8 +97,12 @@ export async function syncPlatformAlerts(input: { deadJobs: number; workersDegra
     if ((trialsSoon ?? 0) > 0) alerts.push({ code: "trials_expiring_soon", message: `${trialsSoon} essai(s) expirent sous 3 jours.` })
     if ((deadEmail ?? 0) > 0) alerts.push({ code: "email_jobs_dead", message: `${deadEmail} e-mail(s) transactionnels en échec définitif.` })
     if ((suspended ?? 0) > 0) alerts.push({ code: "orgs_suspended", message: `${suspended} organisation(s) suspendue(s).` })
-    if (!process.env.BREVO_API_KEY?.trim() || !process.env.BREVO_SENDER_EMAIL?.trim()) {
-      alerts.push({ code: "brevo_not_configured", message: "BREVO_API_KEY / BREVO_SENDER_EMAIL absents — pas d'envoi transactionnel." })
+    const { isEmailProviderConfigured } = await import("@/lib/email/provider")
+    if (!isEmailProviderConfigured()) {
+      alerts.push({
+        code: "email_not_configured",
+        message: "Aucun transport e-mail prêt (EMAIL_PROVIDER=smtp → SMTP_* ; ou BREVO_* si provider=brevo).",
+      })
     }
 
     for (const alert of alerts) {

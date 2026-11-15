@@ -4,6 +4,7 @@
  *
  *   node scripts/setup-env.mjs
  *   node scripts/setup-env.mjs --vercel-only
+ *   node scripts/setup-env.mjs --rotate CRON_SECRET
  *   node scripts/setup-env.mjs --self-test
  */
 import { createInterface } from "node:readline"
@@ -62,6 +63,7 @@ const VERCEL_SENSITIVE_NAMES = new Set([
   "INTEGRATIONS_SECRET",
   "SMTP_PASSWORD",
   "E2E_SUPABASE_SERVICE_ROLE_KEY",
+  "CRON_SECRET",
 ])
 
 const NON_SECRET_LOCAL = {
@@ -155,6 +157,15 @@ export function isGmailAppPassword(value) {
 
 export function generateIntegrationsSecret() {
   return randomBytes(32).toString("hex")
+}
+
+/** 32 bytes → 64 hex chars. Never log the value. */
+export function generateCronSecret() {
+  return randomBytes(32).toString("hex")
+}
+
+export function isCronSecret(value) {
+  return /^[0-9a-f]{64}$/i.test(String(value ?? "").trim())
 }
 
 export function applyLocalEnvFile(input, { extras = {}, remove = [] } = {}) {
@@ -652,6 +663,54 @@ async function runVercelOnly() {
   say("Terminé (--vercel-only).")
 }
 
+/**
+ * Rotate CRON_SECRET: generate 32-byte hex, write local + Vercel Production/Preview
+ * (same value everywhere). Never prints the secret.
+ */
+async function runRotateCronSecret() {
+  say("WOLOYEM Score — setup-env --rotate CRON_SECRET")
+  say("Génère 32 octets hex (64 chars) → .env.local, .env.e2e.local, Vercel Production + Preview.")
+  say("Valeur jamais affichée. /api/cron/maintenance exige Authorization: Bearer <CRON_SECRET>.")
+  say("")
+
+  const secret = generateCronSecret()
+  if (!isCronSecret(secret)) {
+    say("ERROR: génération CRON_SECRET invalide.")
+    process.exit(1)
+  }
+
+  const stamp = stampNow()
+  const envLocalPath = join(ROOT, ".env.local")
+  const envE2ePath = join(ROOT, ".env.e2e.local")
+  const bakLocal = backupFile(envLocalPath, stamp)
+  const bakE2e = backupFile(envE2ePath, stamp)
+  if (bakLocal) say(`Backup: ${bakLocal}`)
+  if (bakE2e) say(`Backup: ${bakE2e}`)
+
+  const beforeLocal = existsSync(envLocalPath) ? readFileSync(envLocalPath, "utf8") : ""
+  const beforeE2e = existsSync(envE2ePath) ? readFileSync(envE2ePath, "utf8") : ""
+  writeFileSync(envLocalPath, upsertEnvVar(beforeLocal, "CRON_SECRET", secret), "utf8")
+  writeFileSync(envE2ePath, upsertEnvVar(beforeE2e, "CRON_SECRET", secret), "utf8")
+  say("Local: CRON_SECRET mis à jour (.env.local + .env.e2e.local) — valeur non affichée.")
+
+  const results = []
+  for (const environment of ["production", "preview"]) {
+    const row = await upsertVercelEnv("CRON_SECRET", environment, secret)
+    results.push(row)
+    say(`  ${row.ok ? "OK" : "FAIL"} Vercel ${environment} CRON_SECRET (${row.kind})${row.ok ? "" : ` — ${row.detail}`}`)
+  }
+  printVercelSummary(results)
+
+  const fails = results.filter((r) => !r.ok).length
+  say("")
+  say(
+    fails
+      ? "Terminé avec échecs Vercel — corriger puis relancer --rotate CRON_SECRET."
+      : "Terminé. Redeploy Production requis pour que le runtime charge le nouveau secret.",
+  )
+  if (fails) process.exit(1)
+}
+
 function selfTest() {
   const failures = []
   const assert = (cond, msg) => {
@@ -680,6 +739,9 @@ function selfTest() {
   assert(!isGmailAppPassword("short"), "gmail reject short")
   assert(normalizeGmailAppPassword("ab cd").length === 4, "normalize spaces")
   assert(generateIntegrationsSecret().length === 64, "generate length")
+  assert(generateCronSecret().length === 64, "cron secret length")
+  assert(isCronSecret("ab".repeat(32)), "cron secret hex64")
+  assert(!isCronSecret("short"), "cron secret reject short")
 
   assert(isVercelSensitive("NEXT_PUBLIC_SUPABASE_ANON_KEY") === false, "NEXT_PUBLIC never sensitive")
   assert(isVercelSensitive("NEXT_PUBLIC_APP_URL") === false, "NEXT_PUBLIC_APP_URL plain")
@@ -689,6 +751,7 @@ function selfTest() {
   assert(isVercelSensitive("INTEGRATIONS_SECRET") === true, "integrations sensitive")
   assert(isVercelSensitive("SMTP_PASSWORD") === true, "smtp password sensitive")
   assert(isVercelSensitive("E2E_SUPABASE_SERVICE_ROLE_KEY") === true, "e2e service sensitive")
+  assert(isVercelSensitive("CRON_SECRET") === true, "cron secret sensitive")
 
   const sets = buildVercelVarSets({
     publishable: "sb_publishable_fake",
@@ -840,6 +903,16 @@ if (entry && entry === self) {
     })
   } else if (process.argv.includes("--vercel-only")) {
     runVercelOnly().catch((error) => {
+      say(`ERROR: ${error instanceof Error ? error.message : "failed"}`)
+      process.exit(1)
+    })
+  } else if (process.argv.includes("--rotate")) {
+    const target = process.argv[process.argv.indexOf("--rotate") + 1]
+    if (target !== "CRON_SECRET") {
+      say('Usage: node scripts/setup-env.mjs --rotate CRON_SECRET')
+      process.exit(1)
+    }
+    runRotateCronSecret().catch((error) => {
       say(`ERROR: ${error instanceof Error ? error.message : "failed"}`)
       process.exit(1)
     })
