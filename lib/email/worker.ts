@@ -7,14 +7,28 @@ import {
   minuteWindowStartIso,
   readEmailRateLimits,
   utcDayStartIso,
+  type EmailRateLimits,
 } from "@/lib/email/rate-limit"
 import { nextEmailAttempt, renderEmail, type EmailTemplate } from "@/lib/email/templates"
+import { isUrgentEmailTemplate } from "@/lib/email/urgent"
 import { recordHeartbeat } from "@/lib/platform/heartbeat"
 import { log } from "@/lib/observability/logger"
 import { deriveAppSecret, isIntegrationsSecretError } from "@/lib/security/app-secret"
 import { createAdminClient } from "@/lib/supabase/admin"
 
 type AdminClient = ReturnType<typeof createAdminClient>
+
+type EmailJobRow = {
+  id: string
+  template: string
+  recipient: string
+  recipient_hash: string
+  locale: string
+  payload: unknown
+  attempts: number
+}
+
+type QuotaCounters = { sentToday: number; sentLastMinute: number }
 
 export async function processEmailJobs() {
   const admin = createAdminClient()
@@ -30,197 +44,247 @@ export async function processEmailJobs() {
     .limit(20)
 
   let sent = 0
-  let sentToday = await countSentSince(admin, utcDayStartIso())
-  let sentLastMinute = await countSentSince(admin, minuteWindowStartIso())
+  const counters: QuotaCounters = {
+    sentToday: await countSentSince(admin, utcDayStartIso()),
+    sentLastMinute: await countSentSince(admin, minuteWindowStartIso()),
+  }
 
   for (const job of data ?? []) {
-    const quota = evaluateEmailQuota({ sentToday, sentLastMinute, limits })
-    if (!quota.ok) {
-      await admin
-        .from("email_jobs")
-        .update({
-          status: "pending",
-          next_run_at: new Date(Date.now() + quota.retryAfterMs).toISOString(),
-          last_error: quota.reason,
-        })
-        .eq("id", job.id)
-        .eq("status", "pending")
-      log("info", "email.rate_limited", {
-        reason: quota.reason,
-        template: job.template,
-        recipient_hash: job.recipient_hash,
-        provider,
-      })
-      continue
-    }
+    const result = await processOneEmailJob(admin, job, { limits, counters, provider })
+    if (result === "sent") sent += 1
+  }
 
-    const claimed = await admin
+  await recordHeartbeat("email_worker")
+  return { sent }
+}
+
+/**
+ * Immediate send for urgent templates right after enqueue.
+ * On any failure / rate-limit / missing provider → leave job pending for cron.
+ */
+export async function tryFlushUrgentEmailJob(input: {
+  organizationId: string
+  idempotencyKey: string
+  template: string
+}) {
+  if (!isUrgentEmailTemplate(input.template)) return { flushed: false as const, reason: "not_urgent" as const }
+
+  const admin = createAdminClient()
+  const { data: job } = await admin
+    .from("email_jobs")
+    .select("id, template, recipient, recipient_hash, locale, payload, attempts")
+    .eq("organization_id", input.organizationId)
+    .eq("idempotency_key", input.idempotencyKey)
+    .eq("status", "pending")
+    .maybeSingle()
+
+  if (!job) return { flushed: false as const, reason: "not_pending" as const }
+
+  const limits = readEmailRateLimits()
+  const counters: QuotaCounters = {
+    sentToday: await countSentSince(admin, utcDayStartIso()),
+    sentLastMinute: await countSentSince(admin, minuteWindowStartIso()),
+  }
+  const result = await processOneEmailJob(admin, job, {
+    limits,
+    counters,
+    provider: getEmailProvider(),
+  })
+  return { flushed: result === "sent", reason: result }
+}
+
+async function processOneEmailJob(
+  admin: AdminClient,
+  job: EmailJobRow,
+  ctx: { limits: EmailRateLimits; counters: QuotaCounters; provider: string },
+): Promise<"sent" | "deferred" | "retry" | "dead" | "skipped"> {
+  const quota = evaluateEmailQuota({
+    sentToday: ctx.counters.sentToday,
+    sentLastMinute: ctx.counters.sentLastMinute,
+    limits: ctx.limits,
+  })
+  if (!quota.ok) {
+    await admin
       .from("email_jobs")
-      .update({ status: "processing", attempts: job.attempts + 1 })
+      .update({
+        status: "pending",
+        next_run_at: new Date(Date.now() + quota.retryAfterMs).toISOString(),
+        last_error: quota.reason,
+      })
       .eq("id", job.id)
       .eq("status", "pending")
-      .select("id")
-    if (!claimed.data?.length) continue
-
-    let payload: Record<string, string> | null
-    try {
-      payload = unsealRecord(record(job.payload))
-    } catch (error) {
-      if (isIntegrationsSecretError(error)) {
-        await admin
-          .from("email_jobs")
-          .update({
-            status: "pending",
-            next_run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-            last_error: error.code,
-          })
-          .eq("id", job.id)
-        log("error", "email.integrations_secret", { code: error.code, template: job.template })
-        continue
-      }
-      throw error
-    }
-
-    if (!payload || (job.template === "first_access" && !payload.accessCode)) {
-      const next = nextEmailAttempt(job.attempts)
-      await admin
-        .from("email_jobs")
-        .update({
-          status: next.status === "dead" ? "dead" : "pending",
-          next_run_at: next.nextRunAt ?? new Date().toISOString(),
-          last_error: "payload_unavailable",
-        })
-        .eq("id", job.id)
-      log("warn", "email.retry", { template: job.template, recipient_hash: job.recipient_hash, status: next.status })
-      continue
-    }
-
-    if (!isEmailProviderConfigured()) {
-      await admin
-        .from("email_jobs")
-        .update({
-          status: "pending",
-          next_run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          last_error: "not_configured",
-        })
-        .eq("id", job.id)
-      continue
-    }
-
-    const message = renderEmail({ template: job.template as EmailTemplate, locale: job.locale, payload })
-    const result = await sendTransactionalEmail({
-      to: job.recipient,
-      subject: message.subject,
-      text: message.text,
+    log("info", "email.rate_limited", {
+      reason: quota.reason,
+      template: job.template,
+      recipient_hash: job.recipient_hash,
+      provider: ctx.provider,
     })
+    return "deferred"
+  }
 
-    if (result.configured && result.ok) {
-      await admin
-        .from("email_jobs")
-        .update({
-          status: "sent",
-          sent_at: new Date().toISOString(),
-          provider_message_id: result.messageId,
-          last_error: null,
-        })
-        .eq("id", job.id)
-      log("info", "email.sent", {
-        template: job.template,
-        recipient_hash: job.recipient_hash,
-        provider: result.provider,
-      })
-      sent += 1
-      sentToday += 1
-      sentLastMinute += 1
-      continue
-    }
+  const claimed = await admin
+    .from("email_jobs")
+    .update({ status: "processing", attempts: job.attempts + 1 })
+    .eq("id", job.id)
+    .eq("status", "pending")
+    .select("id")
+  if (!claimed.data?.length) return "skipped"
 
-    const failure = result.configured ? result.failure : "not_configured"
-    if (result.configured && result.brevoInactive) {
-      await admin
-        .from("email_jobs")
-        .update({
-          status: "dead",
-          next_run_at: new Date().toISOString(),
-          last_error: failure,
-        })
-        .eq("id", job.id)
-      const open = await admin
-        .from("platform_alerts")
-        .select("id")
-        .eq("code", "brevo_smtp_inactive")
-        .is("resolved_at", null)
-        .maybeSingle()
-      if (!open.data) {
-        await admin.from("platform_alerts").insert({
-          code: "brevo_smtp_inactive",
-          message: "Brevo SMTP transactionnel non activé — e-mails bloqués.",
-        })
-      }
-      log("warn", "email.blocked_brevo_inactive", {
-        template: job.template,
-        recipient_hash: job.recipient_hash,
-      })
-      continue
-    }
-
-    if (result.configured && result.disposition === "pending") {
+  let payload: Record<string, string> | null
+  try {
+    payload = unsealRecord(record(job.payload))
+  } catch (error) {
+    if (isIntegrationsSecretError(error)) {
       await admin
         .from("email_jobs")
         .update({
           status: "pending",
           next_run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-          last_error: failure,
+          last_error: error.code,
         })
         .eq("id", job.id)
-      log("warn", "email.deferred", {
-        template: job.template,
-        recipient_hash: job.recipient_hash,
-        failure,
-        provider,
-      })
-      continue
+      log("error", "email.integrations_secret", { code: error.code, template: job.template })
+      return "deferred"
     }
+    throw error
+  }
 
-    if (result.configured && result.disposition === "dead") {
-      await admin
-        .from("email_jobs")
-        .update({
-          status: "dead",
-          next_run_at: new Date().toISOString(),
-          last_error: failure,
-        })
-        .eq("id", job.id)
-      log("warn", "email.dead", {
-        template: job.template,
-        recipient_hash: job.recipient_hash,
-        failure,
-        provider,
-      })
-      continue
-    }
-
+  if (!payload || (job.template === "first_access" && !payload.accessCode)) {
     const next = nextEmailAttempt(job.attempts)
     await admin
       .from("email_jobs")
       .update({
         status: next.status === "dead" ? "dead" : "pending",
         next_run_at: next.nextRunAt ?? new Date().toISOString(),
+        last_error: "payload_unavailable",
+      })
+      .eq("id", job.id)
+    log("warn", "email.retry", { template: job.template, recipient_hash: job.recipient_hash, status: next.status })
+    return next.status === "dead" ? "dead" : "retry"
+  }
+
+  if (!isEmailProviderConfigured()) {
+    await admin
+      .from("email_jobs")
+      .update({
+        status: "pending",
+        next_run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        last_error: "not_configured",
+      })
+      .eq("id", job.id)
+    return "deferred"
+  }
+
+  const message = renderEmail({ template: job.template as EmailTemplate, locale: job.locale, payload })
+  const result = await sendTransactionalEmail({
+    to: job.recipient,
+    subject: message.subject,
+    text: message.text,
+  })
+
+  if (result.configured && result.ok) {
+    await admin
+      .from("email_jobs")
+      .update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+        provider_message_id: result.messageId,
+        last_error: null,
+      })
+      .eq("id", job.id)
+    log("info", "email.sent", {
+      template: job.template,
+      recipient_hash: job.recipient_hash,
+      provider: result.provider,
+    })
+    ctx.counters.sentToday += 1
+    ctx.counters.sentLastMinute += 1
+    return "sent"
+  }
+
+  const failure = result.configured ? result.failure : "not_configured"
+  if (result.configured && result.brevoInactive) {
+    await admin
+      .from("email_jobs")
+      .update({
+        status: "dead",
+        next_run_at: new Date().toISOString(),
         last_error: failure,
       })
       .eq("id", job.id)
-    log("warn", "email.retry", {
+    const open = await admin
+      .from("platform_alerts")
+      .select("id")
+      .eq("code", "brevo_smtp_inactive")
+      .is("resolved_at", null)
+      .maybeSingle()
+    if (!open.data) {
+      await admin.from("platform_alerts").insert({
+        code: "brevo_smtp_inactive",
+        message: "Brevo SMTP transactionnel non activé — e-mails bloqués.",
+      })
+    }
+    log("warn", "email.blocked_brevo_inactive", {
       template: job.template,
       recipient_hash: job.recipient_hash,
-      status: next.status,
-      provider,
-      provider_status: result.configured ? result.status : null,
-      provider_code: result.configured ? result.code : null,
     })
+    return "dead"
   }
 
-  await recordHeartbeat("email_worker")
-  return { sent }
+  if (result.configured && result.disposition === "pending") {
+    await admin
+      .from("email_jobs")
+      .update({
+        status: "pending",
+        next_run_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        last_error: failure,
+      })
+      .eq("id", job.id)
+    log("warn", "email.deferred", {
+      template: job.template,
+      recipient_hash: job.recipient_hash,
+      failure,
+      provider: ctx.provider,
+    })
+    return "deferred"
+  }
+
+  if (result.configured && result.disposition === "dead") {
+    await admin
+      .from("email_jobs")
+      .update({
+        status: "dead",
+        next_run_at: new Date().toISOString(),
+        last_error: failure,
+      })
+      .eq("id", job.id)
+    log("warn", "email.dead", {
+      template: job.template,
+      recipient_hash: job.recipient_hash,
+      failure,
+      provider: ctx.provider,
+    })
+    return "dead"
+  }
+
+  const next = nextEmailAttempt(job.attempts)
+  await admin
+    .from("email_jobs")
+    .update({
+      status: next.status === "dead" ? "dead" : "pending",
+      next_run_at: next.nextRunAt ?? new Date().toISOString(),
+      last_error: failure,
+    })
+    .eq("id", job.id)
+  log("warn", "email.retry", {
+    template: job.template,
+    recipient_hash: job.recipient_hash,
+    status: next.status,
+    provider: ctx.provider,
+    provider_status: result.configured ? result.status : null,
+    provider_code: result.configured ? result.code : null,
+  })
+  return next.status === "dead" ? "dead" : "retry"
 }
 
 async function countSentSince(admin: AdminClient, sinceIso: string) {

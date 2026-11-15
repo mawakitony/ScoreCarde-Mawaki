@@ -3,6 +3,8 @@ import "server-only"
 import { createHash } from "node:crypto"
 import { createAdminClient } from "@/lib/supabase/admin"
 import type { EmailTemplate } from "@/lib/email/templates"
+import { isUrgentEmailTemplate } from "@/lib/email/urgent"
+import { tryFlushUrgentEmailJob } from "@/lib/email/worker"
 import type { Json } from "@/types/database"
 
 export function recipientHash(email: string) {
@@ -29,6 +31,19 @@ export async function enqueueEmail(input: {
       payload: input.payload as Json,
     })
     if (error && !/duplicate|unique/i.test(error.message)) return { queued: false as const }
+
+    if (isUrgentEmailTemplate(input.template)) {
+      try {
+        await tryFlushUrgentEmailJob({
+          organizationId: input.organizationId,
+          idempotencyKey: input.idempotencyKey,
+          template: input.template,
+        })
+      } catch {
+        // Keep queued for cron — never fail the caller because of immediate send.
+      }
+    }
+
     return { queued: true as const }
   } catch {
     return { queued: false as const }
