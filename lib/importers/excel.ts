@@ -4,7 +4,7 @@ import { questionTypes } from "@/lib/validators/builder"
 import { categoryColumns, conditionColumns, conditionSheetColumns, eligibilityColumns, questionColumns, questionOptionalColumns, rangeColumns, scoringCategoryColumns, type ImportIssue, type ImportSource } from "@/lib/importers/model"
 import { validateQuestionnaireTables } from "@/lib/importers/validate"
 
-const TEMPLATE_NAME = "WOLOYEM-Score-Questionnaire-Template.xlsx"
+const TEMPLATE_NAME = "mawaki-score-Questionnaire-Template.xlsx"
 
 const instructions = [
   "Modèle officiel Mawaki Score. Remplissez ce fichier puis réimportez-le dans le Question Builder.",

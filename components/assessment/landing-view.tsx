@@ -112,7 +112,7 @@ function ClassicLanding({
           <img src={content.logoUrl} alt="" className="mb-6 h-10 w-auto object-contain object-left" />
         ) : (
           <p className="text-sm tracking-[0.2em] uppercase" style={{ color: content.secondaryColor }}>
-            WOLOYEM
+            Mawaki Score
           </p>
         )}
         {content.eyebrow ? (

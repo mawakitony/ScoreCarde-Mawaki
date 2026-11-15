@@ -166,7 +166,7 @@ export default async function TemplatesPage({
           <div className="p-5">
             <EmptyState
               title="Aucun modèle métier"
-              description="Les modèles WOLOYEM ne sont pas encore disponibles. Créez une scorecard vide en attendant."
+              description="Les modèles Mawaki Score ne sont pas encore disponibles. Créez une scorecard vide en attendant."
               action={
                 <Link
                   className={cn(

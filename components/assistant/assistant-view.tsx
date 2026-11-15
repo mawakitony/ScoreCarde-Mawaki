@@ -244,7 +244,7 @@ export function AssistantView({
               <div className="min-w-0 flex-1">
                 <h1 className="text-[1.2rem] font-semibold tracking-tight text-foreground">Assistant IA</h1>
                 <p className="mt-0.5 text-[13px] text-muted-foreground">
-                  Copilote WOLOYEM · {messages.length} message{messages.length > 1 ? "s" : ""}
+                  Copilote Mawaki Score · {messages.length} message{messages.length > 1 ? "s" : ""}
                 </p>
                 <p className="mt-1 text-[11px] font-medium text-[color:var(--brand-700)] dark:text-[color:var(--brand-300)]" aria-live="polite">
                   {robotState === "thinking"

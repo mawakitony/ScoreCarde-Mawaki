@@ -112,6 +112,6 @@ export function pdfFilename(scorecardTitle: string, internal: boolean) {
     .replace(/[^a-zA-Z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40) || "Assessment"
-  if (internal) return "WOLOYEM-Lead-Assessment-Internal.pdf"
-  return `WOLOYEM-${slug}-Assessment-Report.pdf`
+  if (internal) return "mawaki-score-Lead-Assessment-Internal.pdf"
+  return `mawaki-score-${slug}-Assessment-Report.pdf`
 }

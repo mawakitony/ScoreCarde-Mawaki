@@ -10,7 +10,7 @@ export default async function AssessmentPage({ params }: { params: Promise<{ slu
   if ("error" in screen) {
     return (
       <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center px-5 py-16">
-        <p className="text-[12px] font-semibold tracking-[0.18em] text-[#1A3BB0] uppercase">WOLOYEM</p>
+        <p className="text-[12px] font-semibold tracking-[0.18em] text-[#1A3BB0] uppercase">Mawaki Score</p>
         <h1 className="font-display mt-4 text-3xl leading-tight sm:text-4xl">Session introuvable</h1>
         <p className="mt-4 text-[15px] leading-relaxed text-[#5e6d7e]">{screen.error}</p>
         <a

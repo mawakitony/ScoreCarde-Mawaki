@@ -41,7 +41,7 @@ function authMessage(message: string) {
     return "Un compte existe déjà avec cet email."
   }
   if (normalized.includes("invitation") || normalized.includes("invite")) {
-    return "Ce compte n'est pas encore membre de WOLOYEM. Demandez une invitation à un administrateur."
+    return "Ce compte n'est pas encore membre de l'équipe Mawaki Score. Demandez une invitation à un administrateur."
   }
   return "La connexion a échoué. Réessayez."
 }
@@ -290,7 +290,7 @@ export async function inviteMember(formData: FormData) {
   if (error) {
     return { error: error.message.includes("Aucun compte") ? error.message : "L'invitation a échoué." }
   }
-  return { message: "Membre ajouté à WOLOYEM." }
+  return { message: "Membre ajouté à Mawaki Score." }
 }
 
 export async function removeMember(userId: string) {

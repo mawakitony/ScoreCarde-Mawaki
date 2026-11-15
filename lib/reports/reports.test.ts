@@ -12,7 +12,7 @@ import { categoryBand, nextReportVersion, pdfRetryPlan, regenerationBlocked } fr
 
 const base: ParticipantReport = {
   language: "fr",
-  brandName: "WOLOYEM",
+  brandName: "Mawaki Score",
   website: "https://woloyem.example",
   contactEmail: "hello@woloyem.example",
   footer: "Abidjan",
@@ -31,7 +31,7 @@ const base: ParticipantReport = {
   improvementAreas: ["Knowledge est un axe à renforcer."],
   recommendations: ["Poursuivre une préparation structurée."],
   ctaLabel: "Voir la formation",
-  disclaimer: "Cette évaluation WOLOYEM n'est pas une certification PMI.",
+  disclaimer: "Cette évaluation Mawaki Score n'est pas une certification PMI.",
 }
 
 test("category bands and deterministic recommendations stay centralised", () => {
@@ -91,7 +91,7 @@ test("participant dto hides admin fields and admin access is separate", () => {
   assert.equal(reportAccess({ reportType: "admin", reportOrganizationId: "org-a", viewerOrganizationId: "org-b", sameSession: false, editor: true }), "denied")
   assert.equal(reportAccess({ reportType: "participant", reportOrganizationId: "org-a", viewerOrganizationId: null, sameSession: true, editor: false }), "participant")
   assert.equal(pdfFilename("Préparation PMP", false).includes("@"), false)
-  assert.equal(pdfFilename("Préparation PMP", true), "WOLOYEM-Lead-Assessment-Internal.pdf")
+  assert.equal(pdfFilename("Préparation PMP", true), "mawaki-score-Lead-Assessment-Internal.pdf")
 })
 
 test("share tokens are hashed, expiring and revocable", () => {

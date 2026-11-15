@@ -89,7 +89,7 @@ export async function saveOrgReportSettings(input: { brandName: string; website:
   const supabase = await createClient()
   const { error } = await supabase.from("organizations").update({
     report_settings: {
-      brandName: input.brandName.trim().slice(0, 80) || "WOLOYEM",
+      brandName: input.brandName.trim().slice(0, 80) || "Mawaki Score",
       website: input.website.trim().slice(0, 200),
       email: input.email.trim().slice(0, 200),
       footer: input.footer.trim().slice(0, 300),

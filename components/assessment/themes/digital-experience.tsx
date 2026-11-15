@@ -23,7 +23,7 @@ export function DigitalExperienceLanding({
   const hasHighlight = Boolean(highlight && title.includes(highlight))
   const before = hasHighlight ? title.slice(0, title.indexOf(highlight)).trimEnd() : title
   const after = hasHighlight ? title.slice(title.indexOf(highlight) + highlight.length).trimStart() : ""
-  const brand = "WOLOYEM"
+  const brand = "Mawaki Score"
   const satisfaction =
     content.demoStats?.find((item) => /satisf/i.test(item.label) || item.value.includes("%"))?.value || "98%"
   const progress =

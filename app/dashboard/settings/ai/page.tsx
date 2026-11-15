@@ -17,7 +17,7 @@ export default async function AiSettingsPage() {
   const { data } = await supabase.from("organizations").select("report_settings").eq("id", membership.organization.id).maybeSingle()
   const row = data?.report_settings && typeof data.report_settings === "object" && !Array.isArray(data.report_settings) ? data.report_settings : {}
   const current = {
-    brandName: typeof row.brandName === "string" ? row.brandName : "WOLOYEM",
+    brandName: typeof row.brandName === "string" ? row.brandName : "Mawaki Score",
     website: typeof row.website === "string" ? row.website : "",
     email: typeof row.email === "string" ? row.email : "",
     footer: typeof row.footer === "string" ? row.footer : "",

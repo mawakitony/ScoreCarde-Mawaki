@@ -221,7 +221,7 @@ export function PlatformShell({
             {!collapsed ? (
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold tracking-[0.14em] text-white/55 uppercase">Platform Admin</p>
-                <p className="truncate text-sm font-semibold text-white">WOLOYEM</p>
+                <p className="truncate text-sm font-semibold text-white">Mawaki Score</p>
               </div>
             ) : null}
           </div>

@@ -87,7 +87,7 @@ export function AssessmentFlow({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={logoUrl} alt="" className="h-8 w-auto object-contain" />
           ) : (
-            <p className="text-sm tracking-[0.18em] text-[#1A3BB0] uppercase">WOLOYEM</p>
+            <p className="text-sm tracking-[0.18em] text-[#1A3BB0] uppercase">Mawaki Score</p>
           )}
           {phase === "questions" && total > 0 ? (
             <div className="mt-4" aria-hidden="true">

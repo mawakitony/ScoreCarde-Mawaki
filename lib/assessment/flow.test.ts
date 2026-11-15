@@ -13,7 +13,7 @@ import { calculateAssessment } from "../scoring/engine.ts"
 const lead = {
   timing: "before_results" as const,
   consentRequired: true,
-  consentLabel: "J'accepte que WOLOYEM utilise mes informations.",
+  consentLabel: "J'accepte que Mawaki Score utilise mes informations.",
   privacyPolicyUrl: "",
   fields: {
     first_name: { enabled: true, required: true, label: "Prénom", placeholder: "" },

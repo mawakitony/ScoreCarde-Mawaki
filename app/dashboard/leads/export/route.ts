@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   return new Response(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": "attachment; filename=\"woloyem-leads.csv\"",
+      "Content-Disposition": "attachment; filename=\"mawaki-score-leads.csv\"",
       "X-Export-Limit": String(CSV_EXPORT_LIMIT),
     },
   })

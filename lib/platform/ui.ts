@@ -12,7 +12,7 @@ const FEATURE_COPY: Record<string, { label: string; description: string }> = {
   ai: { label: "IA", description: "Fonctions d'assistance IA" },
   custom_branding: { label: "Branding personnalisé", description: "Personnalisation visuelle" },
   custom_domain: { label: "Domaine personnalisé", description: "Nom de domaine dédié" },
-  remove_powered_by: { label: "Retirer « Powered by »", description: "Masquer la mention WOLOYEM" },
+  remove_powered_by: { label: "Retirer « Powered by »", description: "Masquer la mention Mawaki Score" },
   scorecards: { label: "Scorecards", description: "Limite de scorecards" },
   assessment_starts: { label: "Démarrages d'évaluation", description: "Limite de sessions démarrées" },
   leads: { label: "Leads", description: "Limite de leads collectés" },

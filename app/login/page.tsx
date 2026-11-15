@@ -10,7 +10,7 @@ export const metadata = { title: "Connexion", robots: { index: false, follow: fa
 
 const errors: Record<string, string> = {
   config: "Ajoutez les variables Supabase dans .env.local, puis appliquez la migration SQL.",
-  invite: "Ce compte n'est pas membre de WOLOYEM. Le premier compte devient propriétaire. Les suivants ont besoin d'une invitation.",
+  invite: "Ce compte n'est pas membre de l'équipe Mawaki Score. Le premier compte devient propriétaire. Les suivants ont besoin d'une invitation.",
   auth: "Le lien de connexion n'est plus valable. Demandez-en un nouveau.",
 }
 

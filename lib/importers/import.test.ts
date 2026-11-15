@@ -27,7 +27,7 @@ function row(values: Partial<Record<(typeof questionColumns)[number], string | n
 
 test("the official template parses and keeps example scores", async () => {
   const file = await buildQuestionnaireTemplate()
-  assert.equal(file.filename, "WOLOYEM-Score-Questionnaire-Template.xlsx")
+  assert.equal(file.filename, "mawaki-score-Questionnaire-Template.xlsx")
   const parsed = await parseQuestionnaireFile({ filename: file.filename, bytes: new Uint8Array(file.bytes) })
   assert.equal(parsed.issues.length, 0)
   assert.equal(parsed.draft?.questions[0]?.options.map((option) => option.score).join(","), "0,25,60,100")

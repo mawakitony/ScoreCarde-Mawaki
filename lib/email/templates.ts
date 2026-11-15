@@ -151,8 +151,8 @@ export function renderEmail(input: { template: EmailTemplate; locale: string; pa
   return {
     subject: english ? "Support access opened" : "Accès support ouvert",
     text: english
-      ? `WOLOYEM support opened a temporary access to ${name}.`
-      : `Le support WOLOYEM a ouvert un accès temporaire à ${name}.`,
+      ? `Mawaki Score support opened a temporary access to ${name}.`
+      : `Le support Mawaki Score a ouvert un accès temporaire à ${name}.`,
   }
 }
 

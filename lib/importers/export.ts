@@ -274,7 +274,7 @@ export async function buildScorecardWorkbook(input: ScorecardWorkbook) {
 
   const bytes = await workbook.xlsx.writeBuffer()
   const slug = input.title.toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").slice(0, 40) || "questionnaire"
-  return { filename: `WOLOYEM-${slug}.xlsx`, bytes: Buffer.from(bytes) }
+  return { filename: `mawaki-score-${slug}.xlsx`, bytes: Buffer.from(bytes) }
 }
 
 function operatorLabel(operator: ImportDisplay["operator"]) {

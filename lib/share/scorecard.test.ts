@@ -89,7 +89,7 @@ test("WhatsApp contient le nom et l'URL, et le PNG a le bon nom", () => {
   assert.equal(text.includes(email), false)
   assert.equal(share.mailto.startsWith("mailto:?subject="), true)
   assert.equal(decodeURIComponent(share.mailto).includes(platform), true)
-  assert.equal(share.fileName, "woloyem-score-eligibilite-pmp-qr.png")
+  assert.equal(share.fileName, "mawaki-score-eligibilite-pmp-qr.png")
   assert.equal(qrDownloadName(slug), share.fileName)
 })
 

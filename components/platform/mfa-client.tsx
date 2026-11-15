@@ -22,7 +22,12 @@ export function PlatformMfaClient({ initialStep }: { initialStep: "enroll" | "ve
     start(async () => {
       setError(null)
       const supabase = browserClient()
-      const { data, error: enrollError } = await supabase.auth.mfa.enroll({ factorType: "totp", friendlyName: "WOLOYEM Platform" })
+      // issuer/friendlyName apply only to new enrollments (otpauth label). Existing factors stay valid via factorId below.
+      const { data, error: enrollError } = await supabase.auth.mfa.enroll({
+        factorType: "totp",
+        friendlyName: "Mawaki Score Admin",
+        issuer: "Mawaki Score Admin",
+      })
       if (enrollError || !data) {
         setError(enrollError?.message ?? "Enrôlement impossible.")
         return
@@ -40,6 +45,7 @@ export function PlatformMfaClient({ initialStep }: { initialStep: "enroll" | "ve
       const supabase = browserClient()
       let id = factorId
       if (!id) {
+        // Challenge/verify by factor id — independent of issuer display name on older enrollments.
         const factors = await supabase.auth.mfa.listFactors()
         id = factors.data?.totp?.[0]?.id ?? ""
       }

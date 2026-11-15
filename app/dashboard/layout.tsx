@@ -164,7 +164,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           href="/platform"
           className="mb-4 inline-flex items-center gap-2 rounded-xl bg-[color:var(--brand-950)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
         >
-          Ouvrir WOLOYEM Platform Admin
+          Ouvrir Mawaki Score Platform Admin
         </a>
       ) : null}
       <MaintenanceBanner />

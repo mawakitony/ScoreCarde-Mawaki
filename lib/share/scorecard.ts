@@ -21,7 +21,7 @@ export function scorecardMailto(input: { name: string; url: string }) {
 
 export function qrDownloadName(slug: string) {
   const safe = slug.toLowerCase().replace(/[^a-z0-9-]+/g, "").slice(0, 80) || "scorecard"
-  return `woloyem-score-${safe}-qr.png`
+  return `mawaki-score-${safe}-qr.png`
 }
 
 export function scorecardShareTarget(input: {

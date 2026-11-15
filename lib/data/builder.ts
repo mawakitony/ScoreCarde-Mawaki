@@ -160,7 +160,7 @@ export async function getBuilderBundle(organizationId: string, scorecardId: stri
     leadForm: {
       timing: lead?.timing ?? "before_results",
       consentRequired: lead?.consent_required ?? false,
-      consentLabel: lead?.consent_label ?? "J'accepte que WOLOYEM utilise mes informations afin de me communiquer mes résultats et les ressources correspondant à mon profil.",
+      consentLabel: lead?.consent_label ?? "J'accepte que Mawaki Score utilise mes informations afin de me communiquer mes résultats et les ressources correspondant à mon profil.",
       privacyPolicyUrl: lead?.privacy_policy_url ?? "",
       fields: parseLeadFields((lead?.fields ?? null) as Json | null),
     },

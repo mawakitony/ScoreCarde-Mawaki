@@ -12,7 +12,7 @@ const field = "h-10 w-full rounded-xl border border-border bg-card px-3 text-sm 
 function settings(value: Json | undefined) {
   const row = value && typeof value === "object" && !Array.isArray(value) ? value : {}
   return {
-    brandName: typeof row.brandName === "string" ? row.brandName : "WOLOYEM",
+    brandName: typeof row.brandName === "string" ? row.brandName : "Mawaki Score",
     website: typeof row.website === "string" ? row.website : "",
     email: typeof row.email === "string" ? row.email : "",
     footer: typeof row.footer === "string" ? row.footer : "",

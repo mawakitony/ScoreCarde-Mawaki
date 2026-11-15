@@ -82,7 +82,7 @@ export default async function ScorecardsPage({
             {params.q ? "Aucun résultat" : "Aucune scorecard"}
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
-            {params.q ? "Essayez un autre nom." : "Créez une scorecard ou partez d'un modèle WOLOYEM."}
+            {params.q ? "Essayez un autre nom." : "Créez une scorecard ou partez d'un modèle Mawaki Score."}
           </p>
           {!params.q ? (
             <Link

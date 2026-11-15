@@ -38,7 +38,7 @@ const featureLabels: Record<Feature, string> = {
   ai: "Assistant IA",
   custom_branding: "Marque personnalisée",
   custom_domain: "Domaine personnalisé",
-  remove_powered_by: "Sans mention WOLOYEM",
+  remove_powered_by: "Sans mention Mawaki Score",
 }
 
 export default async function BillingPage({ searchParams }: { searchParams: Promise<{ checkout?: string }> }) {

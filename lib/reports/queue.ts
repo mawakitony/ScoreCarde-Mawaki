@@ -183,7 +183,7 @@ async function buildSnapshot(admin: Admin, input: {
   }
   const report: ParticipantReport = {
     language: input.scorecard.language,
-    brandName: settings.brandName || "WOLOYEM",
+    brandName: settings.brandName || "Mawaki Score",
     website: settings.website,
     contactEmail: settings.email,
     footer: settings.footer,
@@ -382,9 +382,9 @@ async function runEmail(admin: Admin, job: { id: string; organization_id: string
     signal: AbortSignal.timeout(10_000),
     headers: { "api-key": apiKey, "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({
-      sender: { name: settings.brandName || "WOLOYEM", email: settings.email },
+      sender: { name: settings.brandName || "Mawaki Score", email: settings.email },
       to: [{ email: person.email }],
-      subject: "Votre rapport WOLOYEM",
+      subject: "Votre rapport Mawaki Score",
       htmlContent: `<p>Votre rapport est disponible pendant 7 jours : <a href="${link}">ouvrir le rapport</a></p>`,
     }),
   })
@@ -424,7 +424,7 @@ async function loadSettings(admin: Admin, organizationId: string): Promise<{ bra
   const { data } = await admin.from("organizations").select("report_settings").eq("id", organizationId).maybeSingle()
   const row = record(data?.report_settings ?? {})
   return {
-    brandName: text(row.brandName) || "WOLOYEM",
+    brandName: text(row.brandName) || "Mawaki Score",
     website: text(row.website),
     email: text(row.email),
     footer: text(row.footer),
