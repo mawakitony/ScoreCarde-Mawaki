@@ -2,6 +2,7 @@ import "server-only"
 
 import { redirect } from "next/navigation"
 import { getUser } from "@/lib/auth/session"
+import { resolvePlatformApiAuth, type PlatformApiAuthDenial } from "@/lib/platform/api-auth"
 import { platformMfaStatus } from "@/lib/platform/mfa"
 import { canPlatform, normalizePlatformRole, type PlatformPermission, type PlatformRole } from "@/lib/platform/permissions"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -36,4 +37,26 @@ export async function requirePlatformAdmin(permission?: PlatformPermission, opti
   }
 
   return admin
+}
+
+/**
+ * JSON API gate: Platform Admin + permission + AAL2 → 401/403 (never HTML redirect).
+ */
+export async function requirePlatformAdminApi(
+  permission?: PlatformPermission,
+): Promise<{ ok: true; admin: PlatformAdmin } | PlatformApiAuthDenial> {
+  const user = await getUser()
+  const admin = user ? await isPlatformAdmin() : null
+  const hasPermission = Boolean(admin && (!permission || canPlatform(admin, permission)))
+  const mfa = await platformMfaStatus()
+  const decision = resolvePlatformApiAuth({
+    hasSession: Boolean(user),
+    isPlatformAdmin: Boolean(admin),
+    hasPermission,
+    aal2: mfa.ok,
+    mfaEnrolled: mfa.ok || mfa.reason === "aal2_required",
+  })
+  if (!decision.ok) return decision
+  if (!admin) return { ok: false, status: 403, error: "forbidden" }
+  return { ok: true, admin }
 }

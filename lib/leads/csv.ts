@@ -1,8 +1,13 @@
-const FORMULA = /^[\t\r\n ]*[=+\-@]/
+/** Cells starting with = + - @ tab CR/LF (or spaces then formula) → prefix ' to block CSV injection. */
+const FORMULA = /^(?:[\t\r\n]|[\t\r\n ]*[=+\-@])/
+
+export function needsCsvNeutralization(value: string) {
+  return FORMULA.test(value)
+}
 
 export function csvCell(value: string | number | boolean | null | undefined) {
   const raw = value === null || value === undefined ? "" : String(value)
-  const safe = FORMULA.test(raw) ? `'${raw}` : raw
+  const safe = needsCsvNeutralization(raw) ? `'${raw}` : raw
   return `"${safe.replaceAll('"', '""')}"`
 }
 

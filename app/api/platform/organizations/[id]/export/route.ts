@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server"
-import { requirePlatformAdmin } from "@/lib/platform/auth"
+import { toCsv } from "@/lib/leads/csv"
+import { requirePlatformAdminApi } from "@/lib/platform/auth"
 import { createAdminClient } from "@/lib/supabase/admin"
 
-function csvEscape(value: string | null | undefined) {
-  const raw = String(value ?? "")
-  if (/[",\n]/.test(raw)) return `"${raw.replace(/"/g, '""')}"`
-  return raw
-}
-
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  await requirePlatformAdmin("platform.organizations.read")
+  const gate = await requirePlatformAdminApi("platform.organizations.read")
+  if (!gate.ok) {
+    return NextResponse.json({ error: gate.error }, { status: gate.status })
+  }
+
   const { id } = await context.params
   const admin = createAdminClient()
   const { data: org } = await admin
@@ -68,9 +67,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     sensitive?.legal_id_type,
     org.profile_completed_at,
     org.created_at,
-  ].map(csvEscape)
+  ]
 
-  const body = `${headers.join(",")}\n${row.join(",")}\n`
+  const body = toCsv(headers, [row])
   return new NextResponse(body, {
     status: 200,
     headers: {
