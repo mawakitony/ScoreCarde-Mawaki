@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useMemo, useRef, useState, useTransition } from "react"
 import { useFormStatus } from "react-dom"
 import { Loader2 } from "lucide-react"
 import { toast } from "sonner"
@@ -35,6 +35,11 @@ function slugify(name: string) {
     .slice(0, 48)
 }
 
+function firstInvalidIn(container: HTMLElement | null) {
+  if (!container) return null
+  return container.querySelector<HTMLElement>(":invalid")
+}
+
 export function OrgOnboardingForm({
   countries,
   defaultCountry,
@@ -42,6 +47,9 @@ export function OrgOnboardingForm({
   countries: { code: string; name: string }[]
   defaultCountry: string
 }) {
+  const formRef = useRef<HTMLFormElement>(null)
+  const step1Ref = useRef<HTMLElement>(null)
+  const step2Ref = useRef<HTMLElement>(null)
   const [country, setCountry] = useState(defaultCountry || "TG")
   const defaults = useMemo(() => countryDefaults(country), [country])
   const [name, setName] = useState("")
@@ -53,6 +61,7 @@ export function OrgOnboardingForm({
   const [language, setLanguage] = useState<"fr" | "en">(defaults.language)
   const [timezone, setTimezone] = useState(defaults.timezone)
   const [step, setStep] = useState<1 | 2>(1)
+  const [formError, setFormError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
   function onCountryChange(code: string) {
@@ -65,13 +74,63 @@ export function OrgOnboardingForm({
 
   const phoneE164 = toE164(defaults.dial, phoneNational)
 
+  function revealInvalid(targetStep: 1 | 2, invalid: HTMLElement) {
+    setStep(targetStep)
+    setFormError("Veuillez corriger les champs indiqués avant de continuer.")
+    requestAnimationFrame(() => {
+      invalid.focus()
+      if ("reportValidity" in invalid && typeof (invalid as HTMLInputElement).reportValidity === "function") {
+        ;(invalid as HTMLInputElement).reportValidity()
+      }
+    })
+  }
+
+  function goToStep2() {
+    setFormError(null)
+    const invalid = firstInvalidIn(step1Ref.current)
+    if (invalid) {
+      revealInvalid(1, invalid)
+      return
+    }
+    setStep(2)
+  }
+
+  function onFormSubmit(event: React.FormEvent<HTMLFormElement>) {
+    setFormError(null)
+    const step1Invalid = firstInvalidIn(step1Ref.current)
+    if (step1Invalid) {
+      event.preventDefault()
+      revealInvalid(1, step1Invalid)
+      return
+    }
+    const step2Invalid = firstInvalidIn(step2Ref.current)
+    if (step2Invalid) {
+      event.preventDefault()
+      revealInvalid(2, step2Invalid)
+      return
+    }
+    if (!phoneE164) {
+      event.preventDefault()
+      setStep(2)
+      setFormError("Indiquez un téléphone professionnel valide.")
+      requestAnimationFrame(() => document.getElementById("phoneNational")?.focus())
+    }
+  }
+
   return (
     <form
+      ref={formRef}
       className="mt-6 space-y-6"
+      noValidate
+      onSubmit={onFormSubmit}
       action={(formData) => {
         startTransition(async () => {
+          setFormError(null)
           const result = await createOrganization(formData)
-          if (result && "error" in result && result.error) toast.error(result.error)
+          if (result && "error" in result && result.error) {
+            setFormError(result.error)
+            toast.error(result.error)
+          }
         })
       }}
     >
@@ -97,7 +156,18 @@ export function OrgOnboardingForm({
         ))}
       </ol>
 
-      <section className={cn("space-y-4", step !== 1 && "hidden")} aria-labelledby="block-company">
+      {formError ? (
+        <p className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
+          {formError}
+        </p>
+      ) : null}
+
+      <section
+        ref={step1Ref}
+        data-step="1"
+        className={cn("space-y-4", step !== 1 && "hidden")}
+        aria-labelledby="block-company"
+      >
         <h2 id="block-company" className="text-lg font-semibold text-[#071039] dark:text-[#F5F7FA]">
           Votre entreprise
         </h2>
@@ -241,14 +311,14 @@ export function OrgOnboardingForm({
             <Label htmlFor="timezone" className={labelClass}>
               Fuseau horaire
             </Label>
-            <Input id="timezone" name="timezone" className={fieldClass} value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+            <Input id="timezone" name="timezone" required className={fieldClass} value={timezone} onChange={(e) => setTimezone(e.target.value)} />
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="website" className={labelClass}>
             Site web (facultatif)
           </Label>
-          <Input id="website" name="website" type="url" placeholder="https://" className={fieldClass} />
+          <Input id="website" name="website" type="text" inputMode="url" placeholder="https://" className={fieldClass} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="legalId" className={labelClass}>
@@ -270,12 +340,17 @@ export function OrgOnboardingForm({
             ))}
           </select>
         </div>
-        <Button type="button" className="h-12 w-full rounded-[13px]" onClick={() => setStep(2)}>
+        <Button type="button" className="h-12 w-full rounded-[13px]" onClick={goToStep2}>
           Continuer
         </Button>
       </section>
 
-      <section className={cn("space-y-4", step !== 2 && "hidden")} aria-labelledby="block-you">
+      <section
+        ref={step2Ref}
+        data-step="2"
+        className={cn("space-y-4", step !== 2 && "hidden")}
+        aria-labelledby="block-you"
+      >
         <h2 id="block-you" className="text-lg font-semibold text-[#071039] dark:text-[#F5F7FA]">
           Vous
         </h2>
@@ -303,6 +378,7 @@ export function OrgOnboardingForm({
               id="phoneNational"
               inputMode="tel"
               required
+              minLength={8}
               className={fieldClass}
               placeholder="90 12 34 56"
               value={phoneNational}
@@ -328,7 +404,7 @@ export function OrgOnboardingForm({
           </select>
         </div>
         <div className="flex gap-3">
-          <Button type="button" variant="outline" className="h-12 flex-1 rounded-[13px]" onClick={() => setStep(1)}>
+          <Button type="button" variant="outline" className="h-12 flex-1 rounded-[13px]" onClick={() => setStep(1)} disabled={pending}>
             Retour
           </Button>
           <Submit pending={pending} />
@@ -343,8 +419,8 @@ function Submit({ pending }: { pending: boolean }) {
   const busy = pending || status.pending
   return (
     <Button type="submit" disabled={busy} className="h-12 flex-1 rounded-[13px] bg-[#2E5DE6] text-white hover:bg-[#1A3BB0]">
-      {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-      Créer et continuer
+      {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
+      {busy ? "Création en cours…" : "Créer et continuer"}
     </Button>
   )
 }

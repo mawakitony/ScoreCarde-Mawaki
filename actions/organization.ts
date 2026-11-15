@@ -28,6 +28,20 @@ import { buildZohoOrganizationCreatedPayload } from "@/lib/onboarding/zoho-exten
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
+function mapCreateOrgError(message: string) {
+  const normalized = message.toLowerCase()
+  if (normalized.includes("déjà existante") || normalized.includes("already")) {
+    return "Une organisation est déjà liée à ce compte. Rechargez la page ou ouvrez le tableau de bord."
+  }
+  if (normalized.includes("slug")) return "Cet identifiant d'organisation est invalide ou déjà pris."
+  if (normalized.includes("téléphone") || normalized.includes("telephone") || normalized.includes("phone")) {
+    return "Le téléphone professionnel est invalide. Utilisez le format international (ex. +22890123456)."
+  }
+  if (normalized.includes("permission")) return "Vous n'avez pas l'autorisation de finaliser cette organisation."
+  if (normalized.includes("authentification")) return "Votre session a expiré. Reconnectez-vous puis réessayez."
+  return "L'organisation n'a pas pu être créée. Vérifiez les champs et réessayez."
+}
+
 export async function createOrganization(formData: FormData) {
   const user = await getUser()
   if (!user) redirect("/login")
@@ -56,54 +70,63 @@ export async function createOrganization(formData: FormData) {
   const data = parsed.data
   const useCase = data.sector === "autre" ? data.sectorOther : data.sector
   const supabase = await createClient()
-  const { data: orgId, error } = await supabase.rpc("create_organization", {
-    p_name: data.name,
-    p_slug: data.slug,
+
+  // Idempotent: reuse existing ownership if a prior attempt created the org shell.
+  const { data: existingMember } = await supabase
+    .from("organization_members")
+    .select("organization_id, role")
+    .eq("user_id", user.id)
+    .eq("role", "owner")
+    .maybeSingle()
+
+  let orgId = existingMember?.organization_id as string | null
+  if (!orgId) {
+    const { data: createdId, error } = await supabase.rpc("create_organization", {
+      p_name: data.name,
+      p_slug: data.slug,
+      p_use_case: useCase,
+      p_trial_days: DEFAULT_TRIAL_DAYS,
+    })
+    if (error || !createdId) {
+      console.error("[onboarding] create_organization failed", error?.message ?? "missing_id")
+      return { error: mapCreateOrgError(error?.message ?? "") }
+    }
+    orgId = createdId as string
+  } else {
+    // Keep legal name / slug in sync when completing a partial org.
+    const { error: renameError } = await supabase
+      .from("organizations")
+      .update({ name: data.name, slug: data.slug, use_case: useCase })
+      .eq("id", orgId)
+    if (renameError) {
+      console.error("[onboarding] rename existing org failed", renameError.message)
+      return { error: "Impossible de mettre à jour l'organisation existante." }
+    }
+  }
+
+  const { error: finishError } = await supabase.rpc("finish_organization_onboarding", {
+    p_organization_id: orgId,
+    p_country: data.country,
+    p_city: data.city,
+    p_sector: data.sector,
+    p_sector_other: data.sector === "autre" ? data.sectorOther : "",
+    p_headcount_band: data.headcountBand,
+    p_currency: data.currency,
+    p_primary_objective: data.primaryObjective,
+    p_referral_source: data.referralSource || "",
+    p_website: data.website || "",
+    p_timezone: data.timezone,
+    p_language: data.language,
     p_use_case: useCase,
-    p_trial_days: DEFAULT_TRIAL_DAYS,
+    p_job_title: data.jobTitle,
+    p_phone_e164: data.phoneE164,
+    p_legal_id: data.legalId || "",
+    p_legal_id_type: data.legalIdType,
   })
-  if (error || !orgId) return { error: "L'organisation n'a pas pu être créée." }
-
-  const completedAt = new Date().toISOString()
-  const { error: updateError } = await supabase
-    .from("organizations")
-    .update({
-      country: data.country,
-      city: data.city,
-      sector: data.sector,
-      sector_other: data.sector === "autre" ? data.sectorOther : null,
-      headcount_band: data.headcountBand,
-      currency: data.currency,
-      primary_objective: data.primaryObjective,
-      referral_source: data.referralSource || null,
-      website: data.website || "",
-      timezone: data.timezone,
-      default_language: data.language,
-      use_case: useCase,
-      onboarding_completed_at: completedAt,
-      profile_completed_at: completedAt,
-    })
-    .eq("id", orgId)
-  if (updateError) return { error: "Organisation créée, mais le profil n'a pas pu être enregistré." }
-
-  await supabase.from("organization_sensitive").upsert(
-    {
-      organization_id: orgId,
-      phone_e164: data.phoneE164,
-      legal_id: data.legalId || null,
-      legal_id_type: data.legalId ? data.legalIdType : null,
-      updated_at: completedAt,
-    },
-    { onConflict: "organization_id" },
-  )
-
-  await supabase
-    .from("profiles")
-    .update({
-      job_title: data.jobTitle,
-      country_code: data.country,
-    })
-    .eq("id", user.id)
+  if (finishError) {
+    console.error("[onboarding] finish_organization_onboarding failed", finishError.message)
+    return { error: mapCreateOrgError(finishError.message) }
+  }
 
   // Extension point only — no Zoho call.
   void buildZohoOrganizationCreatedPayload({
