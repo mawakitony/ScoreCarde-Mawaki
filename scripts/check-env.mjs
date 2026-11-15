@@ -75,13 +75,35 @@ const anonFmt = keyFormat(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 const serviceFmt = keyFormat(process.env.SUPABASE_SERVICE_ROLE_KEY)
 const integrations = integrationsSecretMeta(process.env.INTEGRATIONS_SECRET)
 
+const appUrlRaw = String(process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/$/, "")
+let appUrlHost = "MISSING"
+try {
+  if (appUrlRaw) appUrlHost = new URL(appUrlRaw).host
+} catch {
+  appUrlHost = "INVALID"
+}
+const appUrlIsLocal =
+  !appUrlRaw || /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(appUrlHost) || /localhost|127\.0\.0\.1/i.test(appUrlRaw)
+
 console.log(`check-env: database=${label}`)
 console.log(`check-env: ALLOWED_SUPABASE_REF=${ALLOWED_SUPABASE_REF}`)
+console.log(`check-env: NEXT_PUBLIC_APP_URL_HOST=${appUrlHost}`)
 console.log(`check-env: NEXT_PUBLIC_SUPABASE_ANON_KEY_FORMAT=${anonFmt}`)
 console.log(`check-env: SUPABASE_SERVICE_ROLE_KEY_FORMAT=${serviceFmt}`)
 console.log(
   `check-env: INTEGRATIONS_SECRET_STATUS=${integrations.status} FORMAT=${integrations.format} LENGTH=${integrations.length}`,
 )
+
+// On Vercel builds, NEXT_PUBLIC_APP_URL is baked in — refuse localhost.
+if (process.env.VERCEL && appUrlIsLocal) {
+  console.error("")
+  console.error("check-env FAIL: NEXT_PUBLIC_APP_URL must not be localhost on Vercel.")
+  console.error(`  Observed host: ${appUrlHost}`)
+  console.error("  Set NEXT_PUBLIC_APP_URL=https://score-card-mawaki.vercel.app (Config) for Production + Preview.")
+  console.error("  Then redeploy Production without cache (NEXT_PUBLIC_* is frozen at build).")
+  console.error("")
+  process.exit(1)
+}
 
 if (integrations.status === "missing") {
   console.error("")
