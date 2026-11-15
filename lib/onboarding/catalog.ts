@@ -6,31 +6,6 @@ export const MARKETING_CONSENT_VERSION = "2026-11-15"
 
 export const SIGNUP_PRIORITY_COUNTRIES = ["TG", "CI", "SN", "BJ", "FR", "CA"] as const
 
-export const FREE_EMAIL_DOMAINS = new Set([
-  "gmail.com",
-  "googlemail.com",
-  "yahoo.com",
-  "yahoo.fr",
-  "outlook.com",
-  "outlook.fr",
-  "hotmail.com",
-  "hotmail.fr",
-  "live.com",
-  "live.fr",
-  "msn.com",
-  "icloud.com",
-  "me.com",
-  "mac.com",
-  "aol.com",
-  "proton.me",
-  "protonmail.com",
-  "gmx.com",
-  "gmx.fr",
-  "mail.com",
-  "yandex.com",
-  "zoho.com",
-])
-
 export const SECTORS = [
   { value: "formation", label: "Formation / éducation" },
   { value: "conseil", label: "Conseil / services" },
@@ -87,8 +62,3 @@ export type HeadcountBand = (typeof HEADCOUNT_BANDS)[number]["value"]
 export type JobFunction = (typeof JOB_FUNCTIONS)[number]["value"]
 export type PrimaryObjective = (typeof PRIMARY_OBJECTIVES)[number]["value"]
 export type ReferralSource = (typeof REFERRAL_SOURCES)[number]["value"]
-
-export function isFreeEmailDomain(email: string) {
-  const domain = email.trim().toLowerCase().split("@")[1] ?? ""
-  return FREE_EMAIL_DOMAINS.has(domain)
-}

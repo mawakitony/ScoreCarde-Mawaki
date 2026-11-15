@@ -49,6 +49,14 @@ test.describe("T8 signup → org onboarding", () => {
     await expect(page.getByRole("link", { name: /CGU/i })).toBeVisible()
     const options = await page.locator("#country option").allTextContents()
     expect(options[0]?.toLowerCase()).toContain("togo")
+
+    await page.locator("#email").fill("quelquun@gmail.com")
+    await expect(page.getByText(/adresse professionnelle facilite/i)).toHaveCount(0)
+
+    const countryBox = await page.locator("#country").boundingBox()
+    const emailBox = await page.locator("#email").boundingBox()
+    expect(countryBox && emailBox).toBeTruthy()
+    expect(Math.abs((countryBox!.width ?? 0) - (emailBox!.width ?? 0))).toBeLessThan(2)
   })
 
   test("UI signup without Auth mail, then admin-confirm → org → dashboard", async ({ page }) => {

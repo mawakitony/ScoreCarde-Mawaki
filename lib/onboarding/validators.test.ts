@@ -2,7 +2,6 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { isE164Phone, isHttpsUrl, isValidSiret, createOrgOnboardingSchema, signupOnboardingSchema } from "./validators.ts"
 import { isOrgProfileComplete, orgProfileMissingFields } from "./profile-complete.ts"
-import { isFreeEmailDomain } from "./catalog.ts"
 
 test("E.164 phone validation", () => {
   assert.equal(isE164Phone("+22890123456"), true)
@@ -20,11 +19,6 @@ test("SIRET Luhn", () => {
 test("URL validation", () => {
   assert.equal(isHttpsUrl("https://example.com"), true)
   assert.equal(isHttpsUrl("not-a-url"), false)
-})
-
-test("free email domains warn list", () => {
-  assert.equal(isFreeEmailDomain("a@gmail.com"), true)
-  assert.equal(isFreeEmailDomain("a@entreprise.tg"), false)
 })
 
 test("signup requires terms", () => {

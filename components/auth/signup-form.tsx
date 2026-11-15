@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useFormStatus } from "react-dom"
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
@@ -10,12 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { TurnstileField } from "@/components/auth/turnstile-field"
-import { isFreeEmailDomain } from "@/lib/onboarding/catalog"
 import { passwordStrengthHints } from "@/lib/onboarding/validators"
 import { cn } from "@/lib/utils"
 
 const fieldClass = cn(
-  "h-14 rounded-[13px] border-border bg-muted/40 px-3.5 text-[14px] text-foreground",
+  "h-14 w-full rounded-[13px] border-border bg-muted/40 px-3.5 text-[14px] text-foreground",
   "shadow-[0_1px_2px_rgba(7,16,57,0.04)] transition-[border-color,box-shadow,background-color] duration-200",
   "placeholder:text-muted-foreground/80",
   "hover:border-[#B8C6D4] hover:bg-muted/55",
@@ -43,7 +42,6 @@ export function SignupForm({
   const [email, setEmail] = useState(defaultEmail ?? "")
   const [password, setPassword] = useState("")
   const [visible, setVisible] = useState(false)
-  const freeHint = useMemo(() => (email.includes("@") ? isFreeEmailDomain(email) : false), [email])
   const strength = passwordStrengthHints(password)
 
   return (
@@ -89,11 +87,6 @@ export function SignupForm({
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          {freeHint ? (
-            <p className="text-[13px] leading-relaxed text-amber-800 dark:text-amber-200" role="status">
-              Une adresse professionnelle facilite l&apos;invitation de vos collègues.
-            </p>
-          ) : null}
         </div>
 
         <div className="space-y-2">
