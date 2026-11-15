@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 import { getAppUrl, safeNextPath } from "@/lib/env"
 import { invitationKeepsSession } from "@/lib/auth/invite-session"
+import { isE2eSignupNoEmailEnabled } from "@/lib/auth/e2e-signup-no-email"
 import {
   PASSWORD_RESET_NEUTRAL_MESSAGE,
   buildMagicLinkRedirectTo,
@@ -89,8 +90,8 @@ export async function signUp(formData: FormData) {
   const turnstile = await verifyTurnstileToken(parsed.data.turnstileToken)
   if (!turnstile.ok) return { error: turnstile.error }
 
-  // Local E2E only (dev-e2e.mjs). Never set on Vercel — skips Auth SMTP confirmation mail.
-  if (process.env.E2E_SIGNUP_NO_EMAIL === "1") {
+  // Local E2E only (dev-e2e.mjs). Hard-ignored when NODE_ENV or VERCEL_ENV is production.
+  if (isE2eSignupNoEmailEnabled()) {
     return { message: "Compte créé. Ouvrez le lien reçu par email pour activer l'accès." }
   }
 
