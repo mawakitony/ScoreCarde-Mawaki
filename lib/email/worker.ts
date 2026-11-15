@@ -9,6 +9,11 @@ import {
   utcDayStartIso,
   type EmailRateLimits,
 } from "@/lib/email/rate-limit"
+import {
+  FIRST_ACCESS_OBSOLETE_USED,
+  invitationIdFromFirstAccessIdempotencyKey,
+  isFirstAccessInvitationUsed,
+} from "@/lib/email/first-access-job"
 import { nextEmailAttempt, renderEmail, type EmailTemplate } from "@/lib/email/templates"
 import { isUrgentEmailTemplate } from "@/lib/email/urgent"
 import { recordHeartbeat } from "@/lib/platform/heartbeat"
@@ -26,6 +31,7 @@ type EmailJobRow = {
   locale: string
   payload: unknown
   attempts: number
+  idempotency_key?: string | null
 }
 
 type QuotaCounters = { sentToday: number; sentLastMinute: number }
@@ -37,7 +43,7 @@ export async function processEmailJobs() {
   const now = new Date().toISOString()
   const { data } = await admin
     .from("email_jobs")
-    .select("id, template, recipient, recipient_hash, locale, payload, attempts")
+    .select("id, template, recipient, recipient_hash, locale, payload, attempts, idempotency_key")
     .eq("status", "pending")
     .lte("next_run_at", now)
     .order("next_run_at")
@@ -72,7 +78,7 @@ export async function tryFlushUrgentEmailJob(input: {
   const admin = createAdminClient()
   const { data: job } = await admin
     .from("email_jobs")
-    .select("id, template, recipient, recipient_hash, locale, payload, attempts")
+    .select("id, template, recipient, recipient_hash, locale, payload, attempts, idempotency_key")
     .eq("organization_id", input.organizationId)
     .eq("idempotency_key", input.idempotencyKey)
     .eq("status", "pending")
@@ -98,6 +104,11 @@ async function processOneEmailJob(
   job: EmailJobRow,
   ctx: { limits: EmailRateLimits; counters: QuotaCounters; provider: string },
 ): Promise<"sent" | "deferred" | "retry" | "dead" | "skipped"> {
+  if (job.template === "first_access") {
+    const obsolete = await retireFirstAccessIfInvitationUsed(admin, job)
+    if (obsolete) return "dead"
+  }
+
   const quota = evaluateEmailQuota({
     sentToday: ctx.counters.sentToday,
     sentLastMinute: ctx.counters.sentLastMinute,
@@ -285,6 +296,36 @@ async function processOneEmailJob(
     provider_code: result.configured ? result.code : null,
   })
   return next.status === "dead" ? "dead" : "retry"
+}
+
+/** Never resend first_access when the invitation was already used — mark obsolete instead. */
+async function retireFirstAccessIfInvitationUsed(admin: AdminClient, job: EmailJobRow) {
+  const invitationId = invitationIdFromFirstAccessIdempotencyKey(job.idempotency_key)
+  if (!invitationId) return false
+
+  const { data: invitation } = await admin
+    .from("organization_invitations")
+    .select("first_access_used_at, accepted_at")
+    .eq("id", invitationId)
+    .maybeSingle()
+
+  if (!isFirstAccessInvitationUsed(invitation)) return false
+
+  await admin
+    .from("email_jobs")
+    .update({
+      status: "dead",
+      next_run_at: new Date().toISOString(),
+      last_error: FIRST_ACCESS_OBSOLETE_USED,
+    })
+    .eq("id", job.id)
+    .eq("status", "pending")
+
+  log("info", "email.obsolete_invitation_used", {
+    template: job.template,
+    recipient_hash: job.recipient_hash,
+  })
+  return true
 }
 
 async function countSentSince(admin: AdminClient, sinceIso: string) {

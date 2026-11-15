@@ -671,6 +671,7 @@ async function runRotateCronSecret() {
   say("WOLOYEM Score — setup-env --rotate CRON_SECRET")
   say("Génère 32 octets hex (64 chars) → .env.local, .env.e2e.local, Vercel Production + Preview.")
   say("Valeur jamais affichée. /api/cron/maintenance exige Authorization: Bearer <CRON_SECRET>.")
+  say("Vérif auth sans effet: GET ?dry_run=1 ou HEAD (ne traite aucun job).")
   say("")
 
   const secret = generateCronSecret()
