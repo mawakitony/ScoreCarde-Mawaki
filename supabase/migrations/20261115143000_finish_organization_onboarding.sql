@@ -1,5 +1,6 @@
 -- Atomic org profile completion after create_organization (owner membership already exists).
 -- security definer: writes organization_sensitive without relying on client RLS timing.
+-- Hardened: owner|admin gate, search_path=public/pg_temp, revoke PUBLIC+anon.
 
 create or replace function public.finish_organization_onboarding(
   p_organization_id uuid,
@@ -23,7 +24,7 @@ create or replace function public.finish_organization_onboarding(
 returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, pg_temp
 as $$
 declare
   completed_at timestamptz := now();
@@ -32,13 +33,8 @@ begin
     raise exception 'Authentification requise';
   end if;
 
-  if not exists (
-    select 1
-    from public.organization_members
-    where organization_id = p_organization_id
-      and user_id = auth.uid()
-      and role = 'owner'
-  ) then
+  -- Caller must be owner or admin of the target organization.
+  if not public.has_org_role(p_organization_id, array['owner', 'admin']::public.org_role[]) then
     raise exception 'Permission refusée';
   end if;
 
@@ -102,9 +98,12 @@ $$;
 revoke all on function public.finish_organization_onboarding(
   uuid, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text
 ) from public;
+revoke all on function public.finish_organization_onboarding(
+  uuid, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text
+) from anon;
 grant execute on function public.finish_organization_onboarding(
   uuid, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text, text
 ) to authenticated;
 
 comment on function public.finish_organization_onboarding is
-  'Completes org onboarding profile + sensitive phone/legal id atomically for the owner.';
+  'Completes org onboarding profile + sensitive fields atomically; caller must be org owner or admin.';
