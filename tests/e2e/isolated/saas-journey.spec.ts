@@ -7,10 +7,12 @@ import { loadE2eEnvFiles } from "../helpers/load-env"
 loadE2eEnvFiles()
 const ready = e2eIsolatedAllowed()
 const skipReason = e2eIsolatedBlockReason() ?? "E2E isolation not ready"
+const prefix = process.env.E2E_PREFIX?.trim() || "E2E-WOLOYEM-0"
 
 /**
- * Signup UI + onboarding org (14-day trial) + dashboard banner.
- * Email confirmation is performed via Auth admin (no inbox / no mock payment).
+ * Signup UI copy + onboarding org (14-day trial) + dashboard banner.
+ * Account via Auth admin createUser(email_confirm) — zero Auth SMTP / zero inbox.
+ * Domaine @example.test. Comptes E2E_PREFIX uniquement.
  */
 test.describe("SaaS journey without Stripe", () => {
   test.skip(!ready, `BLOCKED: ${skipReason}`)
@@ -18,9 +20,9 @@ test.describe("SaaS journey without Stripe", () => {
   test.setTimeout(180_000)
 
   const suffix = randomBytes(4).toString("hex")
-  const email = `e2e-journey-${suffix}@example.com`
+  const email = `${prefix.toLowerCase()}-journey-${suffix}@example.test`
   const password = `Journey-${suffix}-Aa1!`
-  const slug = `e2e-journey-${suffix}`
+  const slug = `${prefix.toLowerCase()}-journey-${suffix}`.replace(/[^a-z0-9-]/g, "-")
   let userId: string | null = null
   let organizationId: string | null = null
 
@@ -28,6 +30,7 @@ test.describe("SaaS journey without Stripe", () => {
     if (!ready) return
     const admin = e2eAdminClient()
     if (organizationId) {
+      await admin.from("organization_sensitive").delete().eq("organization_id", organizationId)
       await admin.from("subscriptions").delete().eq("organization_id", organizationId)
       await admin.from("organization_members").delete().eq("organization_id", organizationId)
       await admin.from("audit_logs").delete().eq("organization_id", organizationId)
@@ -44,6 +47,8 @@ test.describe("SaaS journey without Stripe", () => {
 
   test("confirmed account can create org, reach dashboard trial banner, then lock", async ({ page }) => {
     const admin = e2eAdminClient()
+    const jobsBefore = await countEmailJobsForRecipient(admin, email)
+
     const created = await admin.auth.admin.createUser({
       email,
       password,
@@ -118,5 +123,20 @@ test.describe("SaaS journey without Stripe", () => {
 
     await page.goto("/dashboard/settings/billing")
     await expect(page.getByText("Abonnement actuel")).toBeVisible()
+
+    const jobsAfter = await countEmailJobsForRecipient(admin, email)
+    const emailJobsDelta = jobsAfter - jobsBefore
+    expect(emailJobsDelta, "email_jobs delta for journey").toBe(0)
+    // Auth SMTP: 0 — createUser(email_confirm), no signUp / generateLink mail.
+    console.log(`JOURNEY_EMAILS_SENT auth_smtp=0 email_jobs=${emailJobsDelta}`)
   })
 })
+
+async function countEmailJobsForRecipient(admin: ReturnType<typeof e2eAdminClient>, email: string) {
+  const { count, error } = await admin
+    .from("email_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("recipient", email.trim().toLowerCase())
+  if (error) return 0
+  return count ?? 0
+}

@@ -89,6 +89,11 @@ export async function signUp(formData: FormData) {
   const turnstile = await verifyTurnstileToken(parsed.data.turnstileToken)
   if (!turnstile.ok) return { error: turnstile.error }
 
+  // Local E2E only (dev-e2e.mjs). Never set on Vercel — skips Auth SMTP confirmation mail.
+  if (process.env.E2E_SIGNUP_NO_EMAIL === "1") {
+    return { message: "Compte créé. Ouvrez le lien reçu par email pour activer l'accès." }
+  }
+
   const fullName = `${parsed.data.firstName} ${parsed.data.lastName}`.trim()
   const next = safeNextPath(String(formData.get("next") ?? ""))
   const supabase = await createClient()

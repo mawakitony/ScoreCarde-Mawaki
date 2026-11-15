@@ -49,6 +49,9 @@ function portFree(port) {
 const env = loadE2eLocal()
 env.E2E_BASE_URL = `http://localhost:${PORT}`
 env.NEXT_PUBLIC_APP_URL = `http://localhost:${PORT}`
+// Prevent Auth SMTP confirmation emails when E2E submits the real signup form.
+env.E2E_SIGNUP_NO_EMAIL = "1"
+
 
 const e2eHost = hostOf(env.E2E_SUPABASE_URL)
 const appHost = hostOf(env.NEXT_PUBLIC_SUPABASE_URL)
