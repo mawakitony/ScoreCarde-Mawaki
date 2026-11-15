@@ -53,7 +53,7 @@ export async function sendSmtpEmail(
   if (!transport) return { configured: false }
 
   const fromEmail = env.EMAIL_FROM!.trim()
-  const fromName = env.EMAIL_FROM_NAME?.trim() || "WOLOYEM Score"
+  const fromName = env.EMAIL_FROM_NAME?.trim() || "Mawaki Score"
   try {
     const info = await transport.sendMail({
       from: `${fromName} <${fromEmail}>`,

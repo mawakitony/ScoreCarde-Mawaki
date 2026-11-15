@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, Settings, ShieldCheck, UserRound } from "lucide-react"
 import { signOut } from "@/actions/auth"
-import { Logo } from "@/components/brand/logo"
+import { Logo, MawakiMark } from "@/components/brand/logo"
 import { DashboardSearch } from "@/components/dashboard/global-search"
 import { NotificationMenu } from "@/components/dashboard/notification-menu"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
@@ -130,30 +130,6 @@ function AccountChip({
   )
 }
 
-function CompactLogo() {
-  return (
-    <span className="inline-flex size-9 items-center justify-center" aria-label="WOLOYEM Score">
-      <svg viewBox="0 0 32 32" className="size-8" aria-hidden>
-        <rect width="32" height="32" rx="8" fill="var(--brand-950)" className="dark:fill-[color:var(--brand-300)]" />
-        <path
-          d="M8 22.5 13.2 9h2.3L21 22.5h-2.3l-1.1-2.8h-6.1l-1.1 2.8H8Zm4.2-4.6h4.3L14.3 12.6h-.1l-2 5.3Z"
-          fill="#F6F1E6"
-          className="dark:fill-[#0B1220]"
-        />
-        <rect
-          x="8"
-          y="24.2"
-          width="16"
-          height="1.6"
-          rx="0.8"
-          fill="var(--brand-300)"
-          className="dark:fill-[#0B1220]"
-        />
-      </svg>
-    </span>
-  )
-}
-
 export function DashboardShell({
   children,
   email,
@@ -189,7 +165,7 @@ export function DashboardShell({
               href="/dashboard"
               className="rounded-xl focus-visible:ring-2 focus-visible:ring-[color:var(--brand-500)]/35 focus-visible:outline-none"
             >
-              {collapsed ? <CompactLogo /> : <Logo tone="ink" />}
+              {collapsed ? <MawakiMark /> : <Logo variant="light" />}
             </Link>
             <button
               type="button"
@@ -284,7 +260,7 @@ export function DashboardShell({
                 >
                   <SheetHeader className="text-left">
                     <SheetTitle className="text-foreground">
-                      <Logo tone="ink" />
+                      <Logo variant="light" />
                     </SheetTitle>
                   </SheetHeader>
                   <p className="truncate px-3 text-[11px] font-semibold tracking-[0.14em] text-[color:var(--brand-700)] dark:text-[color:var(--brand-300)] uppercase">

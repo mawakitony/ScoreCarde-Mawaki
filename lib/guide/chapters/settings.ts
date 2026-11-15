@@ -57,7 +57,7 @@ export const settingsChapter: Chapter = {
       blocks: [
         { type: "p", text: "Réglages, Domaines. Ajoutez le nom d'hôte, puis vérifiez-le. Tant que le statut n'est pas vérifié, les liens publics restent sur l'adresse de la plateforme. Un domaine pending, en échec ou désactivé n'est pas utilisé." },
         { type: "p", text: "Une fois vérifié, le partage d'une scorecard publiée utilise https://votre-domaine/slug. Les adresses /s/slug de la plateforme continuent d'exister." },
-        { type: "config", text: "DNS du domaine, et vérification réussie dans WOLOYEM Score. Le plan doit inclure le domaine personnalisé." },
+        { type: "config", text: "DNS du domaine, et vérification réussie dans Mawaki Score. Le plan doit inclure le domaine personnalisé." },
         { type: "roles", roles: managers },
         { type: "links", items: [{ href: "/dashboard/settings/domains", label: "Ouvrir les domaines" }] },
       ],

@@ -13,6 +13,12 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   --font-heading: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-brand: var(--font-montserrat), var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --color-mawaki-navy: var(--mawaki-navy);
+  --color-mawaki-score-light: var(--mawaki-score-light);
+  --color-mawaki-score-dark: var(--mawaki-score-dark);
+  --color-mawaki-tagline-light: var(--mawaki-tagline-light);
+  --color-mawaki-tagline-dark: var(--mawaki-tagline-dark);
   --color-brass: var(--brass);
   --color-brass-ink: var(--brass-ink);
   --color-brand-950: var(--brand-950);
@@ -73,12 +79,19 @@
 }
 
 :root {
-  /* Lot 17 — Ultramarine Premium brand scale */
-  --brand-950: #071039;
+  /* T9 — Mawaki Score (sampled from brand PNGs) */
+  --mawaki-navy: #1c2340;
+  --mawaki-score-light: #1d4ed8;
+  --mawaki-score-dark: #60a5fa;
+  --mawaki-tagline-light: #9598a6;
+  --mawaki-tagline-dark: #a7aab5;
+
+  /* Lot 17 — Ultramarine Premium brand scale (aligned toward Mawaki navy/blue) */
+  --brand-950: #1c2340;
   --brand-900: #0f2270;
   --brand-700: #1a3bb0;
-  --brand-500: #2e5de6;
-  --brand-300: #6e92f2;
+  --brand-500: #1d4ed8;
+  --brand-300: #60a5fa;
   --brand-200: #afc5f8;
   --brand-100: #e6edfd;
   /* Legacy aliases → Ultramarine (consumers using navy/teal/gold keep working) */
@@ -87,12 +100,12 @@
   --brand-gold: var(--brand-300);
 
   --background: #f7f8fc;
-  --foreground: #071039;
+  --foreground: #1c2340;
   --card: #ffffff;
-  --card-foreground: #071039;
+  --card-foreground: #1c2340;
   --popover: #ffffff;
-  --popover-foreground: #071039;
-  --primary: #2e5de6;
+  --popover-foreground: #1c2340;
+  --primary: #1d4ed8;
   --primary-foreground: #ffffff;
   --secondary: #e6edfd;
   --secondary-foreground: #0f2270;
@@ -103,10 +116,10 @@
   --destructive: #9c3b3b;
   --border: #d5e0f8;
   --input: #d5e0f8;
-  --ring: #2e5de6;
+  --ring: #1d4ed8;
   /* Accent text (eyebrows, labels) — brand-700 for AA on light surfaces */
   --brass: var(--brand-700);
-  --brass-ink: #071039;
+  --brass-ink: #1c2340;
   --guide-tip: #e8f3ec;
   --guide-tip-line: #3d7a52;
   --guide-tip-title: #1f5a34;

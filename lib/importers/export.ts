@@ -145,11 +145,11 @@ export async function buildScorecardWorkbook(input: ScorecardWorkbook) {
   }
 
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = "WOLOYEM Score"
+  workbook.creator = "Mawaki Score"
   const guide = workbook.addWorksheet("Instructions")
   guide.getColumn(1).width = 110
   ;[
-    "Export WOLOYEM Score. Modifiez ce fichier puis réimportez-le avec « Mettre à jour le questionnaire existant ».",
+    "Export Mawaki Score. Modifiez ce fichier puis réimportez-le avec « Mettre à jour le questionnaire existant ».",
     "Ne renommez pas les colonnes. N'utilisez pas de formules.",
     "Les identifiants permettent de reconnaître les questions de cette scorecard. Une question absente du fichier n'est pas supprimée sans confirmation.",
     "Plusieurs conditions ET : feuille Conditions, une ligne par condition, même question_id.",

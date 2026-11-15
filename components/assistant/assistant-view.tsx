@@ -484,7 +484,7 @@ export function AssistantView({
               </span>
               <div>
                 <p className="text-[10px] font-semibold tracking-[0.16em] text-[color:var(--brand-700)] dark:text-[color:var(--brand-300)] uppercase">
-                  WOLOYEM Score
+                  Mawaki Score
                 </p>
                 <h2 className="mt-1 text-[1.15rem] font-semibold tracking-tight text-foreground">
                   Espace de travail

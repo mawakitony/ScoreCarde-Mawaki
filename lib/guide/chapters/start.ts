@@ -14,7 +14,7 @@ export const startChapter: Chapter = {
       title: "Le parcours en cinq actions",
       keywords: ["premiers pas", "publier", "lead"],
       blocks: [
-        { type: "p", text: "WOLOYEM Score sert à publier un questionnaire noté, recueillir des contacts, puis lire les leads et les statistiques." },
+        { type: "p", text: "Mawaki Score sert à publier un questionnaire noté, recueillir des contacts, puis lire les leads et les statistiques." },
         { type: "list", items: [
           "Créez une scorecard, vide ou depuis un modèle.",
           "Complétez l'identité, la page d'accueil et les questions dans le builder.",

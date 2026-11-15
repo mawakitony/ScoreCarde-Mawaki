@@ -68,7 +68,7 @@ export default async function DashboardPage({
     <div className="mx-auto w-full space-y-4 md:space-y-5">
       <WelcomeBanner
         name={userName}
-        organizationName={membership?.organization.name ?? "WOLOYEM Score"}
+        organizationName={membership?.organization.name ?? "Mawaki Score"}
         periodLabel={periodLabel(range)}
         primaryHref={canCreate ? "/dashboard/scorecards" : "/dashboard/leads"}
         primaryLabel={canCreate ? "Créer une scorecard" : "Voir les leads"}

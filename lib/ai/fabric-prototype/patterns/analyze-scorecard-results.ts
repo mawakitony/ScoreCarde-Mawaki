@@ -84,7 +84,7 @@ export const analyzeScorecardResultsPattern: FabricPatternDefinition<
 
   outputSchema: analyzeScorecardResultsOutputSchema,
 
-  systemInstructions: `Tu analyses des résultats de scorecard déjà calculés pour WOLOYEM Score.
+  systemInstructions: `Tu analyses des résultats de scorecard déjà calculés pour Mawaki Score.
 
 PATTERN_ID=analyze_scorecard_results VERSION=1.3.0
 
@@ -94,7 +94,7 @@ JSON seul — aucun markdown.
 
 INTÉGRITÉ:
 
-- Scores officiels = entrée uniquement (moteur WOLOYEM Score).
+- Scores officiels = entrée uniquement (moteur Mawaki Score).
 
 - officialScoresEcho = copie exacte de globalScorePercent + categoryScores.
 

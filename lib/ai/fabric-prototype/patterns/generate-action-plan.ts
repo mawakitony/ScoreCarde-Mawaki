@@ -90,7 +90,7 @@ export const generateActionPlanPattern: FabricPatternDefinition<
     "Propose priorités et actions indicatives en séparant faits, hypothèses et recommandations ; demande un arbitrage seulement si un choix exclusif est imposé ou indispensable.",
   inputSchema: generateActionPlanInputSchema,
   outputSchema: generateActionPlanOutputSchema,
-  systemInstructions: `Tu produis un plan d'action indicatif pour WOLOYEM Score.
+  systemInstructions: `Tu produis un plan d'action indicatif pour Mawaki Score.
 PATTERN_ID=generate_action_plan VERSION=1.3.3
 JSON seul — aucun markdown.
 

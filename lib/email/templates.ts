@@ -20,7 +20,7 @@ export type EmailTemplate =
 
 export function renderEmail(input: { template: EmailTemplate; locale: string; payload: Record<string, string> }) {
   const english = input.locale === "en"
-  const name = input.payload.organizationName || "WOLOYEM Score"
+  const name = input.payload.organizationName || "Mawaki Score"
   const billing = input.payload.billingUrl || ""
   const billingLine = billing
     ? english
@@ -33,11 +33,11 @@ export function renderEmail(input: { template: EmailTemplate; locale: string; pa
     const role = inviteRoleLabel(input.payload.role)
     const intro = inviter
       ? english
-        ? `${inviter} invited you to join ${name} on WOLOYEM Score.`
-        : `${inviter} vous invite à rejoindre ${name} sur WOLOYEM Score.`
+        ? `${inviter} invited you to join ${name} on Mawaki Score.`
+        : `${inviter} vous invite à rejoindre ${name} sur Mawaki Score.`
       : english
-        ? `You have been invited to join ${name} on WOLOYEM Score.`
-        : `Vous êtes invité à rejoindre ${name} sur WOLOYEM Score.`
+        ? `You have been invited to join ${name} on Mawaki Score.`
+        : `Vous êtes invité à rejoindre ${name} sur Mawaki Score.`
     const roleLine = role ? (english ? `\n\nProposed role: ${role}` : `\n\nRôle proposé : ${role}`) : ""
     return {
       subject: english ? `Invitation to ${name}` : `Invitation à rejoindre ${name}`,
@@ -55,10 +55,10 @@ export function renderEmail(input: { template: EmailTemplate; locale: string; pa
       : expirySentence(safeHours)
     const link = input.payload.url
     return {
-      subject: "Votre accès à WOLOYEM Score",
+      subject: "Votre accès à Mawaki Score",
       text: english
-        ? `Hello,\n\nYou have been added to ${name} on WOLOYEM Score.\nYour role: ${role}\nYour first-access code:\n${input.payload.accessCode}\n\nCreate my access: ${link}\n\n${delay}\n\nOpen WOLOYEM Score: ${link}`
-        : `Bonjour,\n\nVous avez été ajouté à ${name} sur WOLOYEM Score.\nVotre rôle : ${role}\nVotre code de première connexion :\n${input.payload.accessCode}\n\nCréer mon accès : ${link}\n\n${delay}\n\nAccéder à WOLOYEM Score : ${link}`,
+        ? `Hello,\n\nYou have been added to ${name} on Mawaki Score.\nYour role: ${role}\nYour first-access code:\n${input.payload.accessCode}\n\nCreate my access: ${link}\n\n${delay}\n\nOpen Mawaki Score: ${link}`
+        : `Bonjour,\n\nVous avez été ajouté à ${name} sur Mawaki Score.\nVotre rôle : ${role}\nVotre code de première connexion :\n${input.payload.accessCode}\n\nCréer mon accès : ${link}\n\n${delay}\n\nAccéder à Mawaki Score : ${link}`,
     }
   }
 

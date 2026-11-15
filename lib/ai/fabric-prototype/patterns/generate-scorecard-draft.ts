@@ -75,7 +75,7 @@ export const generateScorecardDraftPattern: FabricPatternDefinition<
     "Produit un draft JSON aligné sur les types Builder, ou une clarification discriminée — sans création en base ni publication.",
   inputSchema: generateScorecardDraftInputSchema,
   outputSchema: generateScorecardDraftOutputSchema,
-  systemInstructions: `Tu conçois des scorecards WOLOYEM Score.
+  systemInstructions: `Tu conçois des scorecards Mawaki Score.
 PATTERN_ID=generate_scorecard_draft VERSION=1.3.1
 JSON seul — aucun markdown.
 

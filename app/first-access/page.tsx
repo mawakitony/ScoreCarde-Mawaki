@@ -14,7 +14,7 @@ const copy = {
   },
   password: {
     title: "Créez votre mot de passe",
-    description: "Choisissez un mot de passe sécurisé pour finaliser votre accès WOLOYEM Score.",
+    description: "Choisissez un mot de passe sécurisé pour finaliser votre accès Mawaki Score.",
     Icon: LockKeyhole,
   },
   login: {

@@ -15,7 +15,7 @@ export default function CguPage() {
       <p className="mt-4 text-sm text-muted-foreground">Version {TERMS_VERSION}</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#071039]">Conditions générales d’utilisation</h1>
       <p className="mt-4 text-[15px] leading-relaxed text-[#5E6D7E]">
-        Le texte juridique définitif des conditions d’utilisation de WOLOYEM Score sera publié ici après validation.
+        Le texte juridique définitif des conditions d’utilisation de Mawaki Score sera publié ici après validation.
         Cette page provisoire permet uniquement d’ancrer la version de consentement ({TERMS_VERSION}) enregistrée lors
         de l’inscription. Aucun contenu juridique n’est inventé ici.
       </p>

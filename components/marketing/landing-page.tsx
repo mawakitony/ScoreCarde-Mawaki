@@ -122,7 +122,7 @@ const FAQ = [
     a: "Oui via le portail de facturation Stripe. L’accès reste disponible jusqu’à la fin de la période déjà payée lorsque l’annulation est planifiée en fin de période.",
   },
   {
-    q: "Puis-je utiliser WOLOYEM Score pour n’importe quel secteur ?",
+    q: "Puis-je utiliser Mawaki Score pour n’importe quel secteur ?",
     a: "Oui. Les scorecards, le CRM et le dashboard sont génériques : cosmétiques, immobilier, formation, services, commerce ou conseil.",
   },
 ] as const
@@ -150,7 +150,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
       <header className="sticky top-0 z-40 border-b border-[#071039]/08 bg-[#F4F6FB]/85 backdrop-blur-md dark:border-white/10 dark:bg-[#0B1220]/85">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <Link href="/" className="shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E5DE6]/35">
-            <Logo />
+            <Logo withTagline />
           </Link>
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Navigation principale">
             {NAV.map((item) => (
@@ -182,7 +182,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
           <div className="mx-auto w-full max-w-6xl px-5 pt-10 pb-8 sm:pt-14 sm:pb-10">
             <div className="max-w-3xl motion-safe:animate-in motion-safe:fade-in motion-safe:duration-500">
               <p className="font-display text-[13px] font-semibold tracking-[0.2em] text-[#1A3BB0] uppercase dark:text-[#6E92F2]">
-                WOLOYEM Score
+                Mawaki Score
               </p>
               <h1 className="mt-4 text-4xl leading-[1.08] font-semibold tracking-tight sm:text-5xl md:text-[3.35rem]">
                 Transformez vos questionnaires en clients et en décisions.
@@ -301,7 +301,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
             </p>
             <div className="mt-10 max-w-xl">
               <p className="text-[12px] font-semibold tracking-[0.18em] text-[#AFC5F8] uppercase">
-                WOLOYEM Score — Starter
+                Mawaki Score — Starter
               </p>
               <p className="mt-4 flex items-baseline gap-2">
                 <span className="text-5xl font-semibold tracking-tight">{STARTER_PRICE}&nbsp;USD</span>
@@ -437,7 +437,7 @@ export function LandingPage({ signedIn = false }: { signedIn?: boolean }) {
           </div>
         </div>
         <p className={cn("mx-auto mt-10 max-w-6xl px-5 text-[12px] text-[#5E6D7E] dark:text-[#A8B4C0]")}>
-          © {new Date().getFullYear()} WOLOYEM Score. Les liens publics d’évaluation `/s/…` restent
+          © {new Date().getFullYear()} Mawaki Score. Les liens publics d’évaluation `/s/…` restent
           accessibles sans compte administrateur.
         </p>
       </footer>

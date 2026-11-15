@@ -123,12 +123,12 @@ test("first access email keeps the code out of the url and out of the database p
     locale: "fr",
     payload: { ...payload, accessCode: code },
   })
-  assert.equal(message.subject, "Votre accès à WOLOYEM Score")
+  assert.equal(message.subject, "Votre accès à Mawaki Score")
   assert.match(message.text, /Acme/)
   assert.match(message.text, /Editor/)
   assert.match(message.text, new RegExp(code))
   assert.match(message.text, /Créer mon accès : https:\/\/score\.example\/first-access/)
-  assert.match(message.text, /Accéder à WOLOYEM Score : https:\/\/score\.example\/first-access/)
+  assert.match(message.text, /Accéder à Mawaki Score : https:\/\/score\.example\/first-access/)
   assert.match(message.text, new RegExp(expirySentence(24)))
   assert.equal(message.text.includes("mot de passe"), false)
   assert.equal(accessLink("https://score.example/").includes(code), false)
@@ -177,7 +177,7 @@ test("the admin sees a first access code only in the share message, never in sto
     appUrl: "https://score.example",
     hours: 24,
   })
-  assert.match(message, /Vous avez été ajouté à Acme sur WOLOYEM Score/)
+  assert.match(message, /Vous avez été ajouté à Acme sur Mawaki Score/)
   assert.match(message, /Votre rôle : Viewer/)
   assert.match(message, new RegExp(code))
   assert.match(message, /https:\/\/score\.example\/first-access/)

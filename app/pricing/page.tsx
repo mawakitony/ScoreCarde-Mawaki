@@ -43,7 +43,7 @@ export default function PricingPage() {
 
       <main className="mx-auto max-w-6xl px-5 pb-16">
         <p className="text-[12px] font-semibold tracking-[0.16em] text-[#1A3BB0] uppercase dark:text-[#6E92F2]">
-          WOLOYEM Score
+          Mawaki Score
         </p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Tarifs</h1>
         <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[#3D4F7A] dark:text-[#C5D0DE]">

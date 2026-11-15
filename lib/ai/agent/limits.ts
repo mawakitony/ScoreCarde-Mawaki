@@ -33,4 +33,4 @@ export const FORBIDDEN_ASSISTANT_ACTIONS = [
 ] as const
 
 export const ASSISTANT_UNAVAILABLE =
-  "Cette action n'est pas disponible dans l'Assistant IA. Utilisez l'interface WOLOYEM Score correspondante."
+  "Cette action n'est pas disponible dans l'Assistant IA. Utilisez l'interface Mawaki Score correspondante."

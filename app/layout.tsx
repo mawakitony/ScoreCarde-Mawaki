@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Poppins } from "next/font/google"
+import { Montserrat, Poppins } from "next/font/google"
 import { DevDatabaseBanner } from "@/components/dev/database-banner"
 import { AppProviders } from "@/components/providers"
 import { getAppUrl } from "@/lib/env"
@@ -12,24 +12,38 @@ const poppins = Poppins({
   variable: "--font-poppins",
 })
 
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+  variable: "--font-montserrat",
+})
+
 export const metadata: Metadata = {
   metadataBase: new URL(getAppUrl()),
   title: {
-    default: "WOLOYEM Score",
-    template: "%s · WOLOYEM Score",
+    default: "Mawaki Score",
+    template: "%s · Mawaki Score",
   },
   description:
     "Scorecards, CRM et collaboration multi-entreprises. Essai de 14 jours, puis abonnement par organisation.",
   openGraph: {
-    title: "WOLOYEM Score",
+    title: "Mawaki Score",
     description: "Transformez vos questionnaires en clients et en décisions.",
     type: "website",
+  },
+  appleWebApp: {
+    title: "Mawaki Score",
   },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" suppressHydrationWarning className={`${poppins.variable} h-full antialiased`}>
+    <html
+      lang="fr"
+      suppressHydrationWarning
+      className={`${poppins.variable} ${montserrat.variable} h-full antialiased`}
+    >
       <body className={`${poppins.className} min-h-full bg-background text-foreground`}>
         <DevDatabaseBanner />
         <AppProviders>{children}</AppProviders>

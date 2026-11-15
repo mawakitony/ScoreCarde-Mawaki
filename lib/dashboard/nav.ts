@@ -81,5 +81,5 @@ export function resolveDashboardChrome(pathname: string): { title: string; subti
   if (pathname.startsWith("/dashboard/settings")) {
     return { title: "Paramètres", subtitle: "Organisation, équipe, facturation et intégrations." }
   }
-  return { title: "WOLOYEM Score", subtitle: "Espace de travail" }
+  return { title: "Mawaki Score", subtitle: "Espace de travail" }
 }

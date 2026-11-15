@@ -10,11 +10,11 @@ export type ShareDomain = {
 }
 
 export function scorecardShareMessage(input: { name: string; url: string }) {
-  return `Découvrez ${input.name} sur WOLOYEM Score :\n${input.url}`
+  return `Découvrez ${input.name} sur Mawaki Score :\n${input.url}`
 }
 
 export function scorecardMailto(input: { name: string; url: string }) {
-  const subject = `Découvrez ${input.name} sur WOLOYEM Score`
+  const subject = `Découvrez ${input.name} sur Mawaki Score`
   const body = `${scorecardShareMessage(input)}`
   return `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }

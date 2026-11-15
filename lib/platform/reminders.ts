@@ -51,7 +51,7 @@ export async function enqueueTrialReminders(now = Date.now()) {
         locale: organization?.default_language === "en" ? "en" : "fr",
         idempotencyKey: `${step.template}:${row.organization_id}:${dayKey}`,
         payload: {
-          organizationName: organization?.name ?? "WOLOYEM Score",
+          organizationName: organization?.name ?? "Mawaki Score",
           date: dayKey,
           billingUrl,
         },
@@ -88,7 +88,7 @@ export async function enqueueOwnerBillingEmail(input: {
     locale: organization?.default_language === "en" ? "en" : "fr",
     idempotencyKey: input.idempotencyKey,
     payload: {
-      organizationName: organization?.name ?? "WOLOYEM Score",
+      organizationName: organization?.name ?? "Mawaki Score",
       billingUrl: `${getAppUrl()}/dashboard/settings/billing`,
       ...(input.extra ?? {}),
     },

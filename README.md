@@ -1,4 +1,4 @@
-# WOLOYEM Score
+# Mawaki Score
 
 Plateforme de diagnostics, scorecards et qualification de prospects pour les formations WOLOYEM.
 

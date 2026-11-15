@@ -33,7 +33,7 @@ export default async function ResetPasswordPage() {
         Nouveau mot de passe
       </h1>
       <p className="mt-2.5 max-w-[42ch] text-[15px] leading-relaxed font-normal text-[#5E6D7E] dark:text-[#A8B4C0]">
-        Choisissez un mot de passe solide pour sécuriser votre accès WOLOYEM Score.
+        Choisissez un mot de passe solide pour sécuriser votre accès Mawaki Score.
       </p>
 
       <div className="mt-7 sm:mt-8">

@@ -7,7 +7,7 @@ import { searchWorkspace, type SearchHit, type SearchResult } from "@/actions/se
 import { Button } from "@/components/ui/button"
 import { SEARCH_DEBOUNCE_MS, SEARCH_MIN_LENGTH, nextSearchKey } from "@/lib/search/global"
 
-const PLACEHOLDER = "Rechercher dans WOLOYEM Score"
+const PLACEHOLDER = "Rechercher dans Mawaki Score"
 const ERROR_MESSAGE = "Impossible d'effectuer la recherche. Réessayez."
 
 type Ready = Extract<SearchResult, { ok: true }>

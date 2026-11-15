@@ -27,7 +27,7 @@ export function TrialStatusBanner({
       <div className="min-w-0">
         <p className="text-[13px] font-semibold text-foreground">{formatTrialDaysLabel(daysRemaining)}</p>
         <p className="mt-0.5 text-[12px] text-muted-foreground">
-          Votre essai WOLOYEM Score se termine le {trialEndLabel}. Aucune carte bancaire n&apos;est requise
+          Votre essai Mawaki Score se termine le {trialEndLabel}. Aucune carte bancaire n&apos;est requise
           pendant l&apos;essai.
         </p>
       </div>

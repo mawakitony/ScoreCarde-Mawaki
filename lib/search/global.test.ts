@@ -113,7 +113,7 @@ test("Escape ferme le panneau et Enter ouvre le résultat actif", () => {
   assert.equal(SEARCH_DEBOUNCE_MS, 300)
   assert.match(field, /SEARCH_DEBOUNCE_MS/)
   assert.match(field, /term\.length < SEARCH_MIN_LENGTH/)
-  assert.match(field, /Rechercher dans WOLOYEM Score/)
+  assert.match(field, /Rechercher dans Mawaki Score/)
   assert.match(field, /Impossible d'effectuer la recherche\. Réessayez\./)
   assert.match(field, /Aucun résultat pour/)
 })

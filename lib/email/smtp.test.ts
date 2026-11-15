@@ -62,7 +62,7 @@ test("sendSmtpEmail uses injected transport and never needs a live SMTP host", a
     SMTP_USER: "user@gmail.com",
     SMTP_PASSWORD: "app-password",
     EMAIL_FROM: "noreply@example.com",
-    EMAIL_FROM_NAME: "WOLOYEM Score",
+    EMAIL_FROM_NAME: "Mawaki Score",
   }
   assert.equal(isSmtpConfigured(env), true)
   assert.equal(isSmtpConfigured({}), false)

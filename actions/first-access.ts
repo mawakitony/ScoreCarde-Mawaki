@@ -188,7 +188,7 @@ async function enqueueAccess(input: { organizationId: string; invitationId: stri
     locale: organization?.default_language === "en" ? "en" : "fr",
     idempotencyKey: firstAccessIdempotencyKey(input.invitationId, input.codeHash),
     payload: firstAccessEmailPayload({
-      organizationName: organization?.name ?? "WOLOYEM Score",
+      organizationName: organization?.name ?? "Mawaki Score",
       role: input.role,
       code: input.code,
       appUrl: getAppUrl(),

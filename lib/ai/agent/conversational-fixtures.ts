@@ -21,7 +21,7 @@ export const CONVERSATIONAL_FIXTURES: SimulatedTurn[] = [
   {
     user: "Bonjour",
     assistantMessage:
-      "Bonjour ! Je suis votre copilote WOLOYEM Score. Je peux vous aider à créer une scorecard, générer des questions, analyser vos leads ou résumer vos statistiques. Que souhaitez-vous faire ?",
+      "Bonjour ! Je suis votre copilote Mawaki Score. Je peux vous aider à créer une scorecard, générer des questions, analyser vos leads ou résumer vos statistiques. Que souhaitez-vous faire ?",
     claimsWriteCompleted: false,
   },
   {

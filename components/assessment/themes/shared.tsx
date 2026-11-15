@@ -92,7 +92,7 @@ export function LandingChrome({
       ) : null}
       {content.poweredBy !== false ? (
         <p className="mx-auto mt-6 max-w-6xl px-5 pb-8 text-xs tracking-wide text-[#8a7340] uppercase md:px-8">
-          Powered by WOLOYEM Score
+          Powered by Mawaki Score
         </p>
       ) : null}
     </div>

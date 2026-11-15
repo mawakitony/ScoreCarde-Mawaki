@@ -91,7 +91,7 @@ function Nav({
           onClick={onNavigate}
           className="mt-1 px-3 text-sm text-white/50 underline-offset-2 hover:text-white hover:underline focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:outline-none"
         >
-          Retour à WOLOYEM Score
+          Retour à Mawaki Score
         </Link>
       ) : null}
     </nav>

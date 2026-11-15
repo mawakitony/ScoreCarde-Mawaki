@@ -84,7 +84,7 @@ export default async function PublicScorecardPage({ params, searchParams }: Prop
   const brand = resolvePublicBrand({
     entitlements,
     organization: {
-      name: "WOLOYEM Score",
+      name: "Mawaki Score",
       logoUrl: null,
       primaryColor: scorecard.primary_color,
       secondaryColor: scorecard.secondary_color,

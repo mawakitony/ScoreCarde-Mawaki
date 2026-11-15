@@ -7,7 +7,7 @@ import { validateQuestionnaireTables } from "@/lib/importers/validate"
 const TEMPLATE_NAME = "WOLOYEM-Score-Questionnaire-Template.xlsx"
 
 const instructions = [
-  "Modèle officiel WOLOYEM Score. Remplissez ce fichier puis réimportez-le dans le Question Builder.",
+  "Modèle officiel Mawaki Score. Remplissez ce fichier puis réimportez-le dans le Question Builder.",
   "Ne renommez pas les colonnes.",
   "Une ligne = une question.",
   `Utilisez uniquement les types : ${questionTypes.join(", ")}.`,
@@ -39,7 +39,7 @@ function styleHeader(sheet: ExcelJS.Worksheet) {
 
 export async function buildQuestionnaireTemplate() {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = "WOLOYEM Score"
+  workbook.creator = "Mawaki Score"
   const guide = workbook.addWorksheet("Instructions")
   guide.getColumn(1).width = 110
   instructions.forEach((line, index) => {

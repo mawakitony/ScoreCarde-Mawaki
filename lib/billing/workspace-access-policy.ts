@@ -7,7 +7,7 @@ export const BILLING_UNLOCKED_PATH_PREFIXES = [
 ] as const
 
 export const TRIAL_EXPIRED_MESSAGE =
-  "Votre période d'essai gratuite de 14 jours est terminée. Pour continuer à utiliser WOLOYEM Score et retrouver vos scorecards, activez votre abonnement mensuel."
+  "Votre période d'essai gratuite de 14 jours est terminée. Pour continuer à utiliser Mawaki Score et retrouver vos scorecards, activez votre abonnement mensuel."
 
 export const WORKSPACE_LOCKED_ACTION_ERROR =
   "Espace bloqué : l'essai est terminé ou l'abonnement n'est plus actif. Activez un abonnement depuis Facturation."

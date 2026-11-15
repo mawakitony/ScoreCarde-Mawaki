@@ -173,7 +173,7 @@ function ClassicLanding({
         {content.showPrivacy && content.privacyText ? (
           <p className="mt-8 max-w-xl text-sm text-[#5e6d7e]">{content.privacyText}</p>
         ) : null}
-        {content.poweredBy !== false ? <p className="mt-8 text-xs tracking-wide text-[#1A3BB0] uppercase">Powered by WOLOYEM Score</p> : null}
+        {content.poweredBy !== false ? <p className="mt-8 text-xs tracking-wide text-[#1A3BB0] uppercase">Powered by Mawaki Score</p> : null}
       </div>
     </div>
   )

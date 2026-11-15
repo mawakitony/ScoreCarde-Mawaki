@@ -289,7 +289,7 @@ async function runPdf(admin: Admin, job: { id: string; organization_id: string; 
         recipient: email,
         locale: "fr",
         idempotencyKey: `report_ready:${report.id}`,
-        payload: { organizationName: "WOLOYEM Score" },
+        payload: { organizationName: "Mawaki Score" },
       })
     }
     await publishIntegrationEvent({

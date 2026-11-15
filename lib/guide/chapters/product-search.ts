@@ -2,7 +2,7 @@ import type { Chapter } from "../types"
 
 export const productSearchChapter: Chapter = {
   id: "recherche",
-  title: "Rechercher dans WOLOYEM Score",
+  title: "Rechercher dans Mawaki Score",
   description: "La recherche du header, distincte de la recherche de ce guide.",
   emoji: "🔎",
   keywords: ["recherche globale", "header"],
@@ -12,7 +12,7 @@ export const productSearchChapter: Chapter = {
       title: "Ce que la recherche trouve",
       keywords: ["scorecards", "leads", "membres", "mobile"],
       blocks: [
-        { type: "p", text: "Le champ du header indique Rechercher dans WOLOYEM Score. À partir de deux caractères, un panneau groupe les résultats : Scorecards, Leads, Membres. Un clic ouvre la fiche." },
+        { type: "p", text: "Le champ du header indique Rechercher dans Mawaki Score. À partir de deux caractères, un panneau groupe les résultats : Scorecards, Leads, Membres. Un clic ouvre la fiche." },
         { type: "list", items: [
           "Scorecards : nom ou adresse publique.",
           "Leads actifs : prénom, nom, email, téléphone, entreprise. La corbeille n'apparaît pas.",

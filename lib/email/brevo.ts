@@ -10,7 +10,7 @@ export async function sendBrevoEmail(input: { to: string; subject: string; text:
     method: "POST",
     headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({
-      sender: { email: sender, name: process.env.BREVO_SENDER_NAME || "WOLOYEM Score" },
+      sender: { email: sender, name: process.env.BREVO_SENDER_NAME || "Mawaki Score" },
       to: [{ email: input.to }],
       subject: input.subject,
       textContent: input.text,

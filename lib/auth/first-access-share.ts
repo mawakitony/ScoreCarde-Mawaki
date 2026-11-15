@@ -14,7 +14,7 @@ export function firstAccessShareMessage(input: {
   return [
     "Bonjour,",
     "",
-    `Vous avez été ajouté à ${input.organizationName} sur WOLOYEM Score.`,
+    `Vous avez été ajouté à ${input.organizationName} sur Mawaki Score.`,
     `Votre rôle : ${input.roleLabel}`,
     `Votre code de première connexion : ${input.code}`,
     `Créez votre accès ici : ${link}`,

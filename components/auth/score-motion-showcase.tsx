@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react"
 import { Check, Pause, Play, Sparkles, TrendingUp } from "lucide-react"
+import { Logo } from "@/components/brand/logo"
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion"
 import {
   AUTH_SCENE_MS,
@@ -75,15 +76,7 @@ export function ScoreMotionShowcase({
       {!compact ? (
         <header className="relative z-10 flex shrink-0 items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] ring-1 ring-white/20 backdrop-blur-md">
-              <BrandMark />
-            </span>
-            <div>
-              <p className="text-[17px] font-semibold tracking-tight">WOLOYEM Score</p>
-              <p className="mt-0.5 text-[10px] font-semibold tracking-[0.18em] text-[#AFC5F8] uppercase">
-                Plateforme d&apos;évaluation intelligente
-              </p>
-            </div>
+            <Logo variant="dark" withTagline />
           </div>
           <PauseControl paused={paused || reduced} onToggle={() => setPaused((v) => !v)} disabled={reduced} />
         </header>
@@ -200,15 +193,6 @@ function AmbientLayer() {
       <span className="auth-float-delay absolute top-44 right-24 size-2.5 rounded-md bg-[#6E92F2]/75" />
       <span className="auth-float-alt absolute bottom-28 left-8 size-3 rotate-45 bg-white/18" />
     </div>
-  )
-}
-
-function BrandMark() {
-  return (
-    <svg viewBox="0 0 32 32" className="size-6" aria-hidden>
-      <path d="M8 22.5 13.2 9h2.3L21 22.5h-2.3l-1.1-2.8h-6.1l-1.1 2.8H8Zm4.2-4.6h4.3L14.3 12.6h-.1l-2 5.3Z" fill="#E6EDFD" />
-      <rect x="8" y="24.2" width="16" height="1.6" rx="0.8" fill="#6E92F2" />
-    </svg>
   )
 }
 
