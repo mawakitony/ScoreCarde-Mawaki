@@ -29,6 +29,33 @@ const SCOPE = "mawakitonys-projects"
 const LOCAL_APP_URL = "http://localhost:3000"
 const PROD_APP_URL = "https://score-card-mawaki.vercel.app"
 
+/**
+ * Canonical public app URL for a Vercel target.
+ * Never read from .env.local — Production/Preview always use the Vercel domain.
+ */
+export function vercelAppUrlForEnvironment(environment) {
+  const env = String(environment || "").toLowerCase()
+  if (env === "production" || env === "preview") return PROD_APP_URL
+  throw new Error(`vercelAppUrlForEnvironment: unsupported environment "${environment}"`)
+}
+
+/** Guard: refuse to push localhost (or empty) as NEXT_PUBLIC_APP_URL to Vercel. */
+export function assertVercelAppUrl(value, environment) {
+  const expected = vercelAppUrlForEnvironment(environment)
+  const raw = String(value ?? "").trim().replace(/\/$/, "")
+  if (!raw || /localhost|127\.0\.0\.1/i.test(raw)) {
+    throw new Error(
+      `Refusing NEXT_PUBLIC_APP_URL=${raw || "(empty)"} for ${environment} — must be ${expected}`,
+    )
+  }
+  if (raw !== expected.replace(/\/$/, "")) {
+    throw new Error(
+      `Refusing NEXT_PUBLIC_APP_URL host mismatch for ${environment}: got ${raw}, expected ${expected}`,
+    )
+  }
+  return expected
+}
+
 /** Only these may be Vercel Secret. NEXT_PUBLIC_* must always be plain/config. */
 const VERCEL_SENSITIVE_NAMES = new Set([
   "SUPABASE_SERVICE_ROLE_KEY",
@@ -166,9 +193,10 @@ export function readEnvFileValue(filePath, key) {
 }
 
 export function buildVercelVarSets(secrets) {
+  // APP_URL is forced per environment below — never taken from .env.local / secrets.
   const prodVars = {
     NEXT_PUBLIC_SUPABASE_URL: ALLOWED_SUPABASE_URL,
-    NEXT_PUBLIC_APP_URL: PROD_APP_URL,
+    NEXT_PUBLIC_APP_URL: vercelAppUrlForEnvironment("production"),
     NEXT_PUBLIC_SUPABASE_ANON_KEY: secrets.publishable,
     SUPABASE_SERVICE_ROLE_KEY: secrets.serviceProduction,
     INTEGRATIONS_SECRET: secrets.integrations,
@@ -185,10 +213,14 @@ export function buildVercelVarSets(secrets) {
 
   const previewVars = {
     ...prodVars,
+    NEXT_PUBLIC_APP_URL: vercelAppUrlForEnvironment("preview"),
     SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
     E2E_SUPABASE_ANON_KEY: secrets.publishable,
     E2E_SUPABASE_SERVICE_ROLE_KEY: secrets.serviceLocal,
   }
+
+  assertVercelAppUrl(prodVars.NEXT_PUBLIC_APP_URL, "production")
+  assertVercelAppUrl(previewVars.NEXT_PUBLIC_APP_URL, "preview")
 
   return { prodVars, previewVars }
 }
@@ -384,11 +416,22 @@ function printVercelSummary(rows) {
 
 async function syncVercel(secrets) {
   const { prodVars, previewVars } = buildVercelVarSets(secrets)
+  // Last-line defence: force APP_URL after any future edits to the sets.
+  prodVars.NEXT_PUBLIC_APP_URL = assertVercelAppUrl(
+    vercelAppUrlForEnvironment("production"),
+    "production",
+  )
+  previewVars.NEXT_PUBLIC_APP_URL = assertVercelAppUrl(
+    vercelAppUrlForEnvironment("preview"),
+    "preview",
+  )
   const results = []
 
   say("")
   say("--- Vercel Production ---")
+  say(`  NEXT_PUBLIC_APP_URL forcé → ${prodVars.NEXT_PUBLIC_APP_URL} (jamais .env.local)`)
   for (const [name, value] of Object.entries(prodVars)) {
+    if (name === "NEXT_PUBLIC_APP_URL") assertVercelAppUrl(value, "production")
     const row = await upsertVercelEnv(name, "production", value)
     results.push(row)
     say(`  ${row.ok ? "OK" : "FAIL"} ${name} (${row.kind})${row.ok ? "" : ` — ${row.detail}`}`)
@@ -396,7 +439,9 @@ async function syncVercel(secrets) {
 
   say("")
   say("--- Vercel Preview ---")
+  say(`  NEXT_PUBLIC_APP_URL forcé → ${previewVars.NEXT_PUBLIC_APP_URL} (jamais .env.local)`)
   for (const [name, value] of Object.entries(previewVars)) {
+    if (name === "NEXT_PUBLIC_APP_URL") assertVercelAppUrl(value, "preview")
     const row = await upsertVercelEnv(name, "preview", value)
     results.push(row)
     say(`  ${row.ok ? "OK" : "FAIL"} ${name} (${row.kind})${row.ok ? "" : ` — ${row.detail}`}`)
@@ -588,6 +633,9 @@ async function runInteractive() {
 async function runVercelOnly() {
   say("WOLOYEM Score — setup-env --vercel-only (staging hzn…)")
   say("Partie locale ignorée. Secrets masqués ; INTEGRATIONS_SECRET / SMTP_PASSWORD réutilisés depuis .env.local si valides.")
+  say(
+    `NEXT_PUBLIC_APP_URL: forcé Production/Preview → ${PROD_APP_URL} (jamais lu depuis .env.local).`,
+  )
   say("")
 
   const base = await collectSecretsInteractive({ reuseLocalCrypto: true })
@@ -650,6 +698,17 @@ function selfTest() {
     smtpPassword: "abcdefghijklmnop",
   })
   assert(sets.prodVars.NEXT_PUBLIC_APP_URL === PROD_APP_URL, "prod app url")
+  assert(sets.previewVars.NEXT_PUBLIC_APP_URL === PROD_APP_URL, "preview app url forced")
+  assert(sets.previewVars.NEXT_PUBLIC_APP_URL !== LOCAL_APP_URL, "preview never localhost")
+  assert(vercelAppUrlForEnvironment("production") === PROD_APP_URL, "helper prod")
+  assert(vercelAppUrlForEnvironment("preview") === PROD_APP_URL, "helper preview")
+  let rejectedLocal = false
+  try {
+    assertVercelAppUrl(LOCAL_APP_URL, "production")
+  } catch {
+    rejectedLocal = true
+  }
+  assert(rejectedLocal, "assert rejects localhost")
   assert(sets.previewVars.SUPABASE_SERVICE_ROLE_KEY === "sb_secret_local", "preview uses local service")
   assert(sets.prodVars.SUPABASE_SERVICE_ROLE_KEY === "sb_secret_prod", "prod uses prod service")
 
