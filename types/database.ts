@@ -864,6 +864,28 @@ export type Database = {
         Args: { p_name: string; p_slug: string; p_use_case: string; p_trial_days: number }
         Returns: string
       }
+      finish_organization_onboarding: {
+        Args: {
+          p_organization_id: string
+          p_country: string
+          p_city: string
+          p_sector: string
+          p_sector_other: string
+          p_headcount_band: string
+          p_currency: string
+          p_primary_objective: string
+          p_referral_source: string
+          p_website: string
+          p_timezone: string
+          p_language: string
+          p_use_case: string
+          p_job_title: string
+          p_phone_e164: string
+          p_legal_id: string
+          p_legal_id_type: string
+        }
+        Returns: string
+      }
       accept_organization_invitation: {
         Args: { p_token_hash: string; p_member_limit: number | null }
         Returns: string
