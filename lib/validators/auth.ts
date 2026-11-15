@@ -6,6 +6,7 @@ export const loginSchema = z.object({
   password: z.string().min(PASSWORD_MIN_LENGTH, `Le mot de passe doit contenir au moins ${PASSWORD_MIN_LENGTH} caractères.`),
 })
 
+/** @deprecated Prefer signupOnboardingSchema from lib/onboarding/validators */
 export const signupSchema = loginSchema.extend({
   fullName: z.string().trim().min(2, "Indiquez votre nom.").max(80),
 })

@@ -11,11 +11,39 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 import { signOut } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
+import { OrgProfileBanner } from "@/components/dashboard/org-profile-banner"
 
 async function MaintenanceBanner() {
   const message = await maintenanceMessage()
   if (!message) return null
   return <p className="mb-4 rounded-xl border px-4 py-3 text-sm">{message}</p>
+}
+
+async function OrgProfileIncompleteBanner({ organizationId }: { organizationId: string }) {
+  try {
+    const supabase = await createClient()
+    const { data: org } = await supabase
+      .from("organizations")
+      .select("name, country, city, sector, headcount_band, primary_objective, currency, profile_completed_at")
+      .eq("id", organizationId)
+      .maybeSingle()
+    if (!org) return null
+    const { data: sensitive } = await supabase
+      .from("organization_sensitive")
+      .select("phone_e164")
+      .eq("organization_id", organizationId)
+      .maybeSingle()
+    return (
+      <OrgProfileBanner
+        org={{
+          ...org,
+          phone_e164: sensitive?.phone_e164 ?? (org.profile_completed_at ? "present" : null),
+        }}
+      />
+    )
+  } catch {
+    return null
+  }
 }
 
 async function maintenanceMessage() {
@@ -140,6 +168,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </a>
       ) : null}
       <MaintenanceBanner />
+      <OrgProfileIncompleteBanner organizationId={membership.organization.id} />
       {workspaceAccess.locked && billingExempt ? (
         <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-950 dark:text-amber-100">
           Votre espace métier est en pause. Activez un abonnement pour retrouver scorecards, leads et rapports.

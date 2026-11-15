@@ -23,36 +23,116 @@ import { ensureMembership } from "@/lib/data/membership"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
 
+import { createOrgOnboardingSchema } from "@/lib/onboarding/validators"
+import { buildZohoOrganizationCreatedPayload } from "@/lib/onboarding/zoho-extension"
+
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 export async function createOrganization(formData: FormData) {
   const user = await getUser()
   if (!user) redirect("/login")
-  const name = String(formData.get("name") ?? "").trim()
-  const slug = String(formData.get("slug") ?? "").trim().toLowerCase()
-  // Secteur d'activité is stored in organizations.use_case (existing column).
-  const useCase = String(formData.get("useCase") ?? formData.get("sector") ?? "").trim()
-  const country = String(formData.get("country") ?? "").trim().slice(0, 80)
-  const logoUrl = String(formData.get("logoUrl") ?? "").trim().slice(0, 500)
-  if (name.length < 2 || !slugPattern.test(slug) || slug === "woloyem") redirect("/onboarding?error=1")
-  if (logoUrl && !/^https?:\/\//i.test(logoUrl)) redirect("/onboarding?error=1")
+
+  const parsed = createOrgOnboardingSchema.safeParse({
+    name: formData.get("name"),
+    slug: formData.get("slug"),
+    country: formData.get("country"),
+    city: formData.get("city"),
+    sector: formData.get("sector"),
+    sectorOther: formData.get("sectorOther") ?? "",
+    headcountBand: formData.get("headcountBand"),
+    jobTitle: formData.get("jobTitle"),
+    phoneE164: formData.get("phoneE164"),
+    primaryObjective: formData.get("primaryObjective"),
+    website: formData.get("website") ?? "",
+    legalId: formData.get("legalId") ?? "",
+    legalIdType: formData.get("legalIdType") ?? "OTHER",
+    referralSource: formData.get("referralSource") ?? "",
+    currency: formData.get("currency"),
+    language: formData.get("language"),
+    timezone: formData.get("timezone"),
+  })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." }
+
+  const data = parsed.data
+  const useCase = data.sector === "autre" ? data.sectorOther : data.sector
   const supabase = await createClient()
   const { data: orgId, error } = await supabase.rpc("create_organization", {
-    p_name: name,
-    p_slug: slug,
+    p_name: data.name,
+    p_slug: data.slug,
     p_use_case: useCase,
     p_trial_days: DEFAULT_TRIAL_DAYS,
   })
-  if (error) redirect("/onboarding?error=1")
-  if (orgId && (country || logoUrl)) {
-    await supabase
-      .from("organizations")
-      .update({
-        ...(country ? { country } : {}),
-        ...(logoUrl ? { logo_url: logoUrl } : {}),
-      })
-      .eq("id", orgId)
-  }
+  if (error || !orgId) return { error: "L'organisation n'a pas pu être créée." }
+
+  const completedAt = new Date().toISOString()
+  const { error: updateError } = await supabase
+    .from("organizations")
+    .update({
+      country: data.country,
+      city: data.city,
+      sector: data.sector,
+      sector_other: data.sector === "autre" ? data.sectorOther : null,
+      headcount_band: data.headcountBand,
+      currency: data.currency,
+      primary_objective: data.primaryObjective,
+      referral_source: data.referralSource || null,
+      website: data.website || "",
+      timezone: data.timezone,
+      default_language: data.language,
+      use_case: useCase,
+      onboarding_completed_at: completedAt,
+      profile_completed_at: completedAt,
+    })
+    .eq("id", orgId)
+  if (updateError) return { error: "Organisation créée, mais le profil n'a pas pu être enregistré." }
+
+  await supabase.from("organization_sensitive").upsert(
+    {
+      organization_id: orgId,
+      phone_e164: data.phoneE164,
+      legal_id: data.legalId || null,
+      legal_id_type: data.legalId ? data.legalIdType : null,
+      updated_at: completedAt,
+    },
+    { onConflict: "organization_id" },
+  )
+
+  await supabase
+    .from("profiles")
+    .update({
+      job_title: data.jobTitle,
+      country_code: data.country,
+    })
+    .eq("id", user.id)
+
+  // Extension point only — no Zoho call.
+  void buildZohoOrganizationCreatedPayload({
+    organizationId: orgId,
+    slug: data.slug,
+    legalName: data.name,
+    country: data.country,
+    city: data.city,
+    sector: data.sector,
+    sectorOther: data.sector === "autre" ? data.sectorOther : null,
+    headcountBand: data.headcountBand,
+    currency: data.currency,
+    language: data.language,
+    timezone: data.timezone,
+    website: data.website || null,
+    primaryObjective: data.primaryObjective,
+    referralSource: data.referralSource || null,
+    owner: {
+      userId: user.id,
+      email: user.email ?? "",
+      firstName: "",
+      lastName: "",
+      jobTitle: data.jobTitle,
+    },
+    phoneE164: data.phoneE164,
+    legalId: data.legalId || null,
+    legalIdType: data.legalIdType,
+  })
+
   redirect("/dashboard")
 }
 

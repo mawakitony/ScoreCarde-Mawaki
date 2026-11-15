@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useFormStatus } from "react-dom"
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
 import { toast } from "sonner"
-import { sendMagicLink, signIn, signUp } from "@/actions/auth"
+import { sendMagicLink, signIn } from "@/actions/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -88,33 +88,6 @@ export function LoginForm({ next, configured }: { next: string; configured: bool
         </AuthForm>
       </TabsContent>
     </Tabs>
-  )
-}
-
-export function SignupForm({ configured, next, defaultEmail }: { configured: boolean; next: string; defaultEmail?: string }) {
-  const [message, setMessage] = useState<string | null>(null)
-
-  return (
-    <AuthForm
-      configured={configured}
-      action={async (formData) => {
-        formData.set("next", next)
-        const result = await signUp(formData)
-        if (result?.error) toast.error(result.error)
-        if (result?.message) setMessage(result.message)
-      }}
-    >
-      <div className="space-y-2">
-        <Label htmlFor="fullName" className={labelClass}>
-          Nom
-        </Label>
-        <Input id="fullName" name="fullName" className={cn(fieldClass, "pl-3.5")} required />
-      </div>
-      <EmailField defaultValue={defaultEmail} />
-      <PasswordField autoComplete="new-password" />
-      <Submit label="Créer le compte" withArrow />
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
-    </AuthForm>
   )
 }
 

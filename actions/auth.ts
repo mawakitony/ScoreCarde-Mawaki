@@ -11,13 +11,19 @@ import {
 } from "@/lib/auth/password-reset"
 import { createClient } from "@/lib/supabase/server"
 import {
+  MARKETING_CONSENT_VERSION,
+  PRIVACY_VERSION,
+  TERMS_VERSION,
+} from "@/lib/onboarding/catalog"
+import { signupOnboardingSchema } from "@/lib/onboarding/validators"
+import { verifyTurnstileToken } from "@/lib/security/turnstile"
+import {
   forgotPasswordSchema,
   inviteSchema,
   loginSchema,
   magicLinkSchema,
   profileSchema,
   resetPasswordSchema,
-  signupSchema,
 } from "@/lib/validators/auth"
 
 function authMessage(message: string) {
@@ -68,25 +74,61 @@ export async function signIn(formData: FormData) {
 }
 
 export async function signUp(formData: FormData) {
-  const parsed = signupSchema.safeParse({
-    fullName: formData.get("fullName"),
+  const parsed = signupOnboardingSchema.safeParse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
     email: formData.get("email"),
     password: formData.get("password"),
+    country: formData.get("country"),
+    acceptTerms: formData.get("acceptTerms") === "true" || formData.get("acceptTerms") === "on",
+    marketingConsent: formData.get("marketingConsent") === "true" || formData.get("marketingConsent") === "on",
+    turnstileToken: String(formData.get("turnstileToken") ?? "") || undefined,
   })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Données invalides." }
 
+  const turnstile = await verifyTurnstileToken(parsed.data.turnstileToken)
+  if (!turnstile.ok) return { error: turnstile.error }
+
+  const fullName = `${parsed.data.firstName} ${parsed.data.lastName}`.trim()
   const next = safeNextPath(String(formData.get("next") ?? ""))
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
-      data: { full_name: parsed.data.fullName },
+      data: {
+        full_name: fullName,
+        first_name: parsed.data.firstName,
+        last_name: parsed.data.lastName,
+        country_code: parsed.data.country,
+      },
       emailRedirectTo: buildMagicLinkRedirectTo(getAppUrl(), next),
     },
   })
 
   if (error) return { error: authMessage(error.message) }
+
+  const now = new Date().toISOString()
+  if (data.user?.id) {
+    await supabase.from("profiles").upsert(
+      {
+        id: data.user.id,
+        email: parsed.data.email,
+        full_name: fullName,
+        first_name: parsed.data.firstName,
+        last_name: parsed.data.lastName,
+        country_code: parsed.data.country,
+        terms_accepted_at: now,
+        terms_version: TERMS_VERSION,
+        privacy_accepted_at: now,
+        privacy_version: PRIVACY_VERSION,
+        marketing_consent_at: parsed.data.marketingConsent ? now : null,
+        marketing_consent_version: parsed.data.marketingConsent ? MARKETING_CONSENT_VERSION : null,
+      },
+      { onConflict: "id" },
+    )
+  }
+
   if (!data.session) {
     return { message: "Compte créé. Ouvrez le lien reçu par email pour activer l'accès." }
   }

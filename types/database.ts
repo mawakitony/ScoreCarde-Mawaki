@@ -29,6 +29,23 @@ export type Organization = {
   font_preference: string
   trial_used_at: string | null
   onboarding_completed_at: string | null
+  city: string | null
+  sector: string | null
+  sector_other: string | null
+  headcount_band: string | null
+  currency: string
+  primary_objective: string | null
+  referral_source: string | null
+  profile_completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type OrganizationSensitive = {
+  organization_id: string
+  phone_e164: string | null
+  legal_id: string | null
+  legal_id_type: string | null
   created_at: string
   updated_at: string
 }
@@ -37,7 +54,18 @@ export type Profile = {
   id: string
   email: string | null
   full_name: string | null
+  first_name: string | null
+  last_name: string | null
+  country_code: string | null
+  job_title: string | null
   avatar_url: string | null
+  terms_accepted_at: string | null
+  terms_version: string | null
+  privacy_accepted_at: string | null
+  privacy_version: string | null
+  marketing_consent_at: string | null
+  marketing_consent_version: string | null
+  trial_used_at: string | null
   created_at: string
   updated_at: string
 }
@@ -135,6 +163,18 @@ export type Database = {
   public: {
     Tables: {
       organizations: Table<Organization>
+      organization_sensitive: Table<
+        OrganizationSensitive,
+        [
+          {
+            foreignKeyName: "organization_sensitive_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      >
       profiles: Table<Profile>
       organization_members: Table<
         OrgMemberRow,

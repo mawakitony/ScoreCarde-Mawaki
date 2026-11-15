@@ -1,11 +1,14 @@
 import Link from "next/link"
 import { Logo } from "@/components/brand/logo"
-import { SignupForm } from "@/components/auth/auth-forms"
+import { SignupForm } from "@/components/auth/signup-form"
 import { AuthStage } from "@/components/auth/auth-stage"
 import { ScoreMotionShowcase } from "@/components/auth/score-motion-showcase"
 import { loadInvitePreview } from "@/lib/auth/invite-lookup"
 import { inviteTokenFromPath } from "@/lib/auth/invitation-flow"
+import { DEFAULT_TRIAL_DAYS } from "@/lib/billing/plans"
 import { isSupabaseConfigured, safeNextPath } from "@/lib/env"
+import { signupCountryChoices } from "@/lib/onboarding/country-defaults"
+import { turnstileSiteKey } from "@/lib/security/turnstile"
 
 export const metadata = { title: "Essayer gratuitement", robots: { index: false, follow: false } }
 
@@ -15,6 +18,8 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const preview = token ? await loadInvitePreview(token) : null
   const invited = preview?.status === "valid" ? preview : null
   const loginHref = invited ? `/login?next=${encodeURIComponent(next)}` : "/login"
+  const countries = signupCountryChoices()
+  const siteKey = turnstileSiteKey()
 
   return (
     <AuthStage
@@ -45,11 +50,17 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
       <p className="mt-2.5 max-w-[42ch] text-[15px] leading-relaxed font-normal text-[#5E6D7E] dark:text-[#A8B4C0]">
         {invited
           ? `Créez votre compte pour rejoindre ${invited.organizationName}.`
-          : "Créez votre compte, confirmez votre e-mail, puis créez l’organisation de votre entreprise. 14 jours d’essai sans carte bancaire. Les collaborateurs rejoignent via invitation — un seul abonnement couvre l’organisation."}
+          : `Créez votre compte, confirmez votre e-mail, puis créez l’organisation de votre entreprise. ${DEFAULT_TRIAL_DAYS} jours d’essai sans carte bancaire. Les collaborateurs rejoignent via invitation — un seul abonnement couvre l’organisation.`}
       </p>
 
       <div className="mt-7 sm:mt-8">
-        <SignupForm configured={isSupabaseConfigured()} next={next} defaultEmail={invited?.email} />
+        <SignupForm
+          configured={isSupabaseConfigured()}
+          next={next}
+          defaultEmail={invited?.email}
+          countries={countries}
+          turnstileSiteKey={siteKey}
+        />
       </div>
     </AuthStage>
   )

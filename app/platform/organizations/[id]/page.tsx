@@ -64,10 +64,17 @@ export default async function PlatformOrganizationPage({
   const client = createAdminClient()
   const { data: organization } = await client
     .from("organizations")
-    .select("id, name, slug, country, created_at")
+    .select(
+      "id, name, slug, country, city, sector, sector_other, headcount_band, currency, default_language, timezone, website, primary_objective, referral_source, profile_completed_at, created_at",
+    )
     .eq("id", id)
     .maybeSingle()
   if (!organization) notFound()
+  const { data: sensitive } = await client
+    .from("organization_sensitive")
+    .select("phone_e164, legal_id, legal_id_type")
+    .eq("organization_id", id)
+    .maybeSingle()
 
   const [
     { data: subscription },
@@ -125,6 +132,7 @@ export default async function PlatformOrganizationPage({
   const priceLabel = price ? `${(price.amountCents / 100).toFixed(2)} ${price.currency.toUpperCase()} / ${interval === "yearly" ? "an" : "mois"}` : "Non déterminé"
   const ctx = {
     organization,
+    sensitive: sensitive ?? null,
     subscription,
     members: members ?? [],
     domains: domains ?? [],
@@ -234,7 +242,25 @@ export default async function PlatformOrganizationPage({
 }
 
 type Ctx = {
-  organization: { id: string; name: string; slug: string; country: string | null; created_at: string }
+  organization: {
+    id: string
+    name: string
+    slug: string
+    country: string | null
+    city: string | null
+    sector: string | null
+    sector_other: string | null
+    headcount_band: string | null
+    currency: string | null
+    default_language: string | null
+    timezone: string | null
+    website: string | null
+    primary_objective: string | null
+    referral_source: string | null
+    profile_completed_at: string | null
+    created_at: string
+  }
+  sensitive: { phone_e164: string | null; legal_id: string | null; legal_id_type: string | null } | null
   subscription: {
     plan: string
     status: string
@@ -297,10 +323,38 @@ function OverviewTab(ctx: Ctx) {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <PlatformPanel title="Informations entreprise">
+          <div className="mb-3">
+            <a
+              href={`/api/platform/organizations/${ctx.organization.id}/export`}
+              className="inline-flex h-9 items-center rounded-xl border border-border px-3 text-sm font-semibold hover:bg-[color:var(--pa-bg)]"
+            >
+              Export CSV
+            </a>
+          </div>
           <dl className="grid gap-3 sm:grid-cols-2">
-            <InfoItem label="Nom" value={ctx.organization.name} />
+            <InfoItem label="Raison sociale" value={ctx.organization.name} />
             <InfoItem label="Identifiant" value={ctx.organization.slug} mono />
             <InfoItem label="Pays" value={ctx.organization.country ?? "—"} />
+            <InfoItem label="Ville" value={ctx.organization.city ?? "—"} />
+            <InfoItem label="Secteur" value={ctx.organization.sector ?? "—"} />
+            <InfoItem label="Secteur (précision)" value={ctx.organization.sector_other ?? "—"} />
+            <InfoItem label="Effectif" value={ctx.organization.headcount_band ?? "—"} />
+            <InfoItem label="Devise" value={ctx.organization.currency ?? "—"} />
+            <InfoItem label="Langue" value={ctx.organization.default_language ?? "—"} />
+            <InfoItem label="Fuseau" value={ctx.organization.timezone ?? "—"} />
+            <InfoItem label="Site web" value={ctx.organization.website || "—"} />
+            <InfoItem label="Objectif" value={ctx.organization.primary_objective ?? "—"} />
+            <InfoItem label="Origine" value={ctx.organization.referral_source ?? "—"} />
+            <InfoItem label="Téléphone" value={ctx.sensitive?.phone_e164 ?? "—"} mono />
+            <InfoItem
+              label="Identifiant légal"
+              value={
+                ctx.sensitive?.legal_id
+                  ? `${ctx.sensitive.legal_id_type ?? ""} ${ctx.sensitive.legal_id}`.trim()
+                  : "—"
+              }
+            />
+            <InfoItem label="Profil complété" value={ctx.organization.profile_completed_at?.slice(0, 10) ?? "Incomplet"} />
             <InfoItem label="Création" value={ctx.organization.created_at.slice(0, 10)} />
             <InfoItem label="Propriétaire" value={maskEmail(ctx.owner?.email ?? null)} />
             <InfoItem label="Statut" value={ctx.accessLabel} />
